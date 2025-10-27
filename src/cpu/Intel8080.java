@@ -34,12 +34,40 @@ public class Intel8080 {
                 continue;
             }
 
-            byte instruction = memory.getRom(pc);
+            byte instruction = memory.getRom(pc++);
             execute(instruction);
         }
     }
     public void loadProgram(byte[] program){
         memory.loadRom(program);
+    }
+
+    public Memory getMemory(){
+        return memory;
+    }
+    private void setFlags(String flags, byte... args){
+        if(flags.contains("Z")) Z = (args[0] & 0xFF) == 0;
+        if(flags.contains("S")) S = (args[0] & 0x80) != 0;
+        if(flags.contains("P")) P = Integer.bitCount(args[0] & 0xFF) % 2 == 0;
+        if(flags.contains("AC")) AC = ((args[0] & 0x0F) + (args[1] & 0x0F)) > 0x0F;
+        if(flags.contains("CY")) CY = ((args[0] & 0xFF) + (args[1] & 0xFF)) > 0xFF;
+    }
+    private void handleInterrupt() {
+        //push current pc onto stack
+        memory.push((byte)((pc >> 8) & 0xFF));
+        memory.push((byte)(pc & 0xFF));
+
+        //jump to interrupt address
+        pc = interruptVector;
+
+        //reset interrupt flags
+        interruptPending = false;
+    }
+    public void triggerInterrupt(int vector) {
+        if (IE) {
+            interruptPending = true;
+            interruptVector = vector;
+        }
     }
     public void execute(byte instruction){
         switch (instruction){
@@ -458,7 +486,7 @@ public class Intel8080 {
             case 0x3E->{
                 //load imm8 in next byte to A
                 A = memory.getRom(pc++);
-                System.out.printf("MVI A, %d", A);
+                System.out.printf("MVI A, %d\n", A);
             }
             case 0x3F->{
                 //carry flag = ! carry flag
@@ -1740,30 +1768,4 @@ public class Intel8080 {
             }
         }
     }
-    private void setFlags(String flags, byte... args){
-        if(flags.contains("Z")) Z = (args[0] & 0xFF) == 0;
-        if(flags.contains("S")) S = (args[0] & 0x80) != 0;
-        if(flags.contains("P")) P = Integer.bitCount(args[0] & 0xFF) % 2 == 0;
-        if(flags.contains("AC")) AC = ((args[0] & 0x0F) + (args[1] & 0x0F)) > 0x0F;
-        if(flags.contains("CY")) CY = ((args[0] & 0xFF) + (args[1] & 0xFF)) > 0xFF;
-    }
-    private void handleInterrupt() {
-        //push current pc onto stack
-        memory.push((byte)((pc >> 8) & 0xFF));
-        memory.push((byte)(pc & 0xFF));
-
-        //jump to interrupt address
-        pc = interruptVector;
-
-        //reset interrupt flags
-        interruptPending = false;
-    }
-    public void triggerInterrupt(int vector) {
-        if (IE) {
-            interruptPending = true;
-            interruptVector = vector;
-        }
-    }
-
-
 }

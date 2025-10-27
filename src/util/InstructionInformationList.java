@@ -40,4 +40,9 @@ public class InstructionInformationList{
     public int gets(int opcode){
         return otos.getOrDefault(opcode, -1);
     }
+    public void print(){
+        for(int i = 0 ; i < 0xFF; i++){
+            System.out.println(i + ": " + getm(i) + " " + gets(i));
+        }
+    }
 }
