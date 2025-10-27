@@ -1,7 +1,7 @@
 package cpu;
 
 public class Intel8080 {
-    private byte A, B, C, D, E, H, L;
+    private byte A=0, B=0, C=0, D=0, E=0, H=0, L=0;
     //sp in rom
     private final Memory memory = new Memory(8192, 4096);
     private int pc=0;
@@ -37,6 +37,9 @@ public class Intel8080 {
             byte instruction = memory.getRom(pc++);
             execute(instruction);
         }
+    }
+    public byte[] getOutputPorts(){
+        return outputPorts;
     }
     public void loadProgram(byte[] program){
         memory.loadRom(program);
@@ -1329,8 +1332,8 @@ public class Intel8080 {
                 short address = (short) ((high << 8) | low);
                 byte pclow = (byte)((pc & 0xFF00) >> 8);
                 byte pchigh = (byte)(pc & 0x00FF);
-                memory.push(pchigh);
                 memory.push(pclow);
+                memory.push(pchigh);
                 pc = address;
                 System.out.printf("CALL %s\n", Integer.toHexString(address));
             }

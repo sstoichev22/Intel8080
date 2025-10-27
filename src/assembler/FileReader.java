@@ -6,13 +6,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FileReader {
-    public static List<String> ReadFile(String path){
+    public static String[] ReadFile(String path){
         try {
-            return  Files.readAllLines(Path.of(path));
+            return  Files.readAllLines(Path.of(path)).toArray(String[]::new);
         } catch (Exception e) {
             System.err.println("Cannot read file.");
             e.printStackTrace();
         }
-        return new ArrayList<>();
+        return new String[0];
     }
 }

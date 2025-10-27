@@ -9,7 +9,7 @@ import java.util.List;
 
 public class Main {
     public static void main(String[] args) throws InterruptedException {
-        List<String> lines = FileReader.ReadFile("C:\\Users\\stefa\\OneDrive\\Documents\\Intel8080\\src\\program\\program.asm");
+        String[] lines = FileReader.ReadFile("C:\\Users\\stefa\\OneDrive\\Documents\\Intel8080\\src\\program\\program.asm");
         byte[] program = Assembler.assemble(lines);
         System.out.println(Arrays.toString(program));
         Intel8080 vm = new Intel8080();
@@ -17,6 +17,8 @@ public class Main {
         Thread vmThread = new Thread(vm::run);
         vmThread.start();
         Thread.sleep(100);
-        System.out.println(vm.getMemory().getRam(0x0C00));
+        System.out.println(vm.getOutputPorts()[0x0]);
+        Thread.sleep(1000);
+        System.exit(0);
     }
 }

@@ -6,69 +6,100 @@ import java.io.ByteArrayOutputStream;
 import java.util.*;
 
 public class Assembler {
-
-    private static final Set<String> REGISTERS = Set.of("A","B","C","D","E","H","L","M");
-
-    public static byte[] assemble(List<String> lines) {
+    public static byte[] assemble(String[] lines) {
         InstructionInformationList iil = OpcodeTable.OPCODES;
-        Map<String, Integer> labels = new HashMap<>();
+        //label to address
+        HashMap<String, Integer> ltoa = new HashMap<>();
+
+        //get all labels in advance
+        List<String> labels = new ArrayList<>();
+        for(int i = 0 ; i < lines.length; i++){
+            int idx = lines[i].indexOf(':');
+            if(idx != -1)
+                labels.add(lines[i].substring(0, idx));
+        }
+        //pass one will go through each instruction and
+        // when it sees some label it will note the label and pc
+        //then remove the label
         int pc = 0;
-        //turn lines to possible labels
-        for(String instruction : lines){
-            instruction = removeComments(instruction);
-            if(instruction.isEmpty()) continue;
-            if(instruction.endsWith(":"))
-                labels.put(instruction, pc);
-            String[] tokens = instruction.split("\\s+");
-            StringBuilder i = new StringBuilder();
+        for(int i = 0 ; i < lines.length; i++){
+            //remove comments
+            lines[i] = removeComments(lines[i]);
+
+            //add <label, pc> to 'labels' and remove from line
+            if(lines[i].contains(":")){
+                int idx = lines[i].indexOf(':');
+                ltoa.put(lines[i].substring(0, idx), pc);
+                lines[i] = lines[i].substring(idx+1).trim();
+            }
+            //skip if after label removal(or not) is empty
+            if(lines[i].isEmpty()) continue;
+
+            //check if any token is an immediate or label and collect tokens that are neither
+            String[] tokens = lines[i].split("\\s+");
+            //imm or label
+            String mnemonic = "", iorl = "";
             for(String token : tokens){
                 Integer imm = decodeImmediate(token);
-                if(imm == null){
-                    i.append(token + " ");
-                }
+                //if imm is null it is not a number in any form(hex,bin,oct,dec)
+                //imm==null means it's a word,
+                // labels not containing the word means it's a part of opcode
+                if(imm == null && !labels.contains(token)){
+                    mnemonic += token + " ";
+                } else iorl += (imm==null?token:imm);
+                //guaranteed to have one immediate per instruction
             }
-            int opcode = iil.geto(i.toString().trim());
-            if(opcode == -1)
-                throw new RuntimeException("Not an opcode. [" + i.toString() + "]");
-            pc += iil.gets(opcode);
-        }
+            mnemonic = mnemonic.trim();
 
-        //now with label addresses we can make instructions
+            //set line to opcode
+            lines[i] = iil.geto(mnemonic) + " " + iorl;
+            //get and add size to pc
+            int size = iil.gets(mnemonic);
+            pc += size;
+        }
+        //now we know where labels are
+        //in pass 2 we replace labels with imm16
+        //all lines are in form '(opcode) imm8/16/label
+        //if imm8 then size is 2
+        //if imm16 or label it is size 3
         ByteArrayOutputStream program = new ByteArrayOutputStream();
         for(String instruction : lines){
-            instruction = removeComments(instruction);
+            //write opcode
             if(instruction.isEmpty()) continue;
-            //we dont care about labels anymore
-            if(labels.containsKey(instruction)) continue;
-            for(Map.Entry<String, Integer> labelpair : labels.entrySet()){
-                String label = labelpair.getKey();
-                String hexAddress = Integer.toHexString(labelpair.getValue() & 0xFFFF);
-                instruction = instruction.replaceAll(label, hexAddress);
-            }
             String[] tokens = instruction.split("\\s+");
-            StringBuilder i = new StringBuilder();
-            Integer imm = null;
-            for(String token : tokens){
-                imm = decodeImmediate(token);
-                if(imm == null){
-                    i.append(token + " ");
-                }
-            }
-            int opcode = iil.geto(i.toString().trim());
-            int size = iil.gets(opcode);
+            int opcode = Integer.parseInt(tokens[0]) & 0xFF;
             program.write(opcode & 0xFF);
-
-            assert imm != null;
-            // cant because we set the size of each instruction and we expect a value
+            int size = iil.gets(opcode);
+            //size = 1 then there is no imm or label
             if(size == 2){
-                program.write(imm & 0xFF);
+                //imm8
+                byte imm8 = (byte) (Integer.parseInt(tokens[1]) & 0xFF);
+                program.write(imm8 & 0xFF);
             }
             if(size == 3){
-                program.write(imm & 0xFF);
-                program.write((imm >> 8) & 0xFF);
+                //imm16
+                if(isNumber(tokens[1])){
+                    int imm16 = Integer.parseInt(tokens[1]) & 0xFFFF;
+                    byte low = (byte) (imm16 & 0xFF);
+                    byte high = (byte) ((imm16 >> 8) & 0xFF);
+                    program.write(low);
+                    program.write(high);
+                }
+                //label
+                else{
+                    int address = ltoa.get(tokens[1]);
+                    byte low = (byte) (address & 0xFF);
+                    byte high = (byte) ((address >> 8) & 0xFF);
+                    program.write(low);
+                    program.write(high);
+                }
             }
         }
         return program.toByteArray();
+    }
+
+    private static boolean isNumber(String word){
+        return word.charAt(0) >= '0' && word.charAt(0) <= '9';
     }
 
     private static String removeComments(String s){
@@ -81,7 +112,7 @@ public class Assembler {
         imm = imm.toUpperCase().trim();
         if(imm.isEmpty()) return null;
         //hex
-        if((imm.startsWith("0X") || imm.endsWith("H")) && Character.isDigit(imm.charAt(0))){
+        if(imm.startsWith("0X") || imm.endsWith("H")){
             if(imm.startsWith("0X")){
                 int res = 0;
                 int power = 0;
@@ -134,7 +165,9 @@ public class Assembler {
     //char to hex
     private static int ctoh(char c){
         c = Character.toUpperCase(c);
-        if(!(c >= '0' && c <= '9') && !(c >= 'A' && c <= 'F')) return -1;
+        if(!(c >= '0' && c <= '9') && !(c >= 'A' && c <= 'F')){
+            throw new RuntimeException("Not hexadecimal: " + c);
+        }
         return switch(c){
             case 'A'-> 10;
             case 'B'-> 11;

@@ -1,8 +1,26 @@
-; Simple addition program for Intel 8080
-; Adds 5 + 7 and stores the result at address 0xC000
+; fib(6)=0+1+1+2+3+5+8
+MVI B, 6
+MVI C, 0
+MVI D, 1
 
-        MVI A, 05H      ; Load 5 into accumulator (A)
-        MVI B, 07H      ; Load 7 into register B
-        ADD B           ; A = A + B (A = 12)
-        STA 0C00H       ; Store A into memory address 0xC000
-        HLT             ; Stop execution
+CALL loop
+
+MOV A, D
+OUT 0x0
+HLT
+
+loop:
+    DCR B
+    MOV A, B
+    CPI 0
+    RZ
+
+    MOV A, C
+    ADD D
+    MOV E, A
+
+    MOV C, D
+    MOV D, E
+
+
+    JMP loop
