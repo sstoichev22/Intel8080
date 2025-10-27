@@ -36,4 +36,13 @@ public class Memory {
     public int getSp(){
         return sp;
     }
+    public void loadRom(byte[] program){
+        System.arraycopy(program, 0, rom, 0, program.length);
+    }
+    public int getRomSize(){
+        return rom.length;
+    }
+    public int getRamSize(){
+        return ram.length;
+    }
 }

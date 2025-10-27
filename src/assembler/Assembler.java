@@ -1,5 +1,7 @@
 package assembler;
 
+import util.InstructionInformationList;
+
 import java.io.ByteArrayOutputStream;
 import java.util.*;
 
@@ -8,87 +10,77 @@ public class Assembler {
     private static final Set<String> REGISTERS = Set.of("A","B","C","D","E","H","L","M");
 
     public static byte[] assemble(List<String> lines) {
+        InstructionInformationList iil = new InstructionInformationList();
         Map<String, Integer> labels = new HashMap<>();
         List<Instruction> instructions = new ArrayList<>();
         int pc = 0;
-
-        // === PASS 1: collect labels and calculate PC ===
-        for (String line : lines) {
-            line = line.toUpperCase().split(";")[0].trim(); // remove comments
-            if (line.isEmpty()) continue;
-
-            // Label
-            if (line.endsWith(":")) {
-                labels.put(line.substring(0, line.length() - 1), pc);
-                continue;
-            }
-
-            // Tokenize
-            String[] tokens = line.replaceAll(",", " ").split("\\s+");
-            String mnemonic = tokens[0];
-            String[] args = Arrays.copyOfRange(tokens, 1, tokens.length);
-
-            int size = OpcodeTable.OPCODES.gets(mnemonic);
-            if (size == -1) throw new RuntimeException("Unknown instruction: " + mnemonic);
-
-            instructions.add(new Instruction(mnemonic, args));
-            pc += size;
-        }
-
-        // === PASS 2: generate machine code ===
-        ByteArrayOutputStream program = new ByteArrayOutputStream();
-
-        for (Instruction instr : instructions) {
-            String mnemonic = instr.getMnemonic();
-            String[] args = instr.getArgs();
-
-            int opcode = OpcodeTable.OPCODES.geto(mnemonic);
-            if (opcode == -1) throw new RuntimeException("Unknown opcode: " + mnemonic);
-
-            // Check each argument for register and encode it
-            for (String arg : args) {
-                if (REGISTERS.contains(arg)) {
-                    opcode |= registerCode(arg);
-                    break; // only encode the first register argument for simplicity
+        //turn lines to possible labels
+        for(String instruction : lines){
+            instruction = removeComments(instruction);
+            if(instruction.isEmpty()) continue;
+            if(instruction.endsWith(":"))
+                labels.put(instruction, pc);
+            String[] tokens = instruction.replaceAll(",", " ").split("\\s+");
+            StringBuilder i = new StringBuilder();
+            for(String token : tokens){
+                Integer imm = null;
+                try{
+                    imm = Integer.decode(token);
+                } catch (Exception ignored){}
+                if(imm == null){
+                    i.append(token);
                 }
             }
-
-            program.write(opcode);
-
-            int size = OpcodeTable.OPCODES.gets(mnemonic);
-
-            // Immediate 8-bit
-            if (size == 2) {
-                String arg = args[args.length - 1];
-                int value = labels.containsKey(arg) ? labels.get(arg) : Integer.decode(arg);
-                program.write(value & 0xFF);
-            }
-
-            // Immediate 16-bit / address
-            if (size == 3) {
-                String arg = args[args.length - 1];
-                int value = labels.containsKey(arg) ? labels.get(arg) : Integer.decode(arg);
-                program.write(value & 0xFF);          // low byte
-                program.write((value >> 8) & 0xFF);   // high byte
-            }
+            int opcode = iil.geto(i.toString());
+            if(opcode == -1)
+                throw new RuntimeException("Not an opcode.");
+            pc += iil.gets(opcode);
         }
 
+        //now with label addresses we can make instructions
+        ByteArrayOutputStream program = new ByteArrayOutputStream();
+        for(String instruction : lines){
+            instruction = removeComments(instruction);
+            if(instruction.isEmpty()) continue;
+            //we dont care about labels anymore
+            if(labels.containsKey(instruction)) continue;
+            for(Map.Entry<String, Integer> labelpair : labels.entrySet()){
+                String label = labelpair.getKey();
+                String hexAddress = Integer.toHexString(labelpair.getValue() & 0xFFFF);
+                instruction = instruction.replaceAll(label, hexAddress);
+            }
+            String[] tokens = instruction.replaceAll(",", " ").split("\\s+");
+            StringBuilder i = new StringBuilder();
+            Integer imm = null;
+            for(String token : tokens){
+                try{
+                    imm = Integer.decode(token);
+                } catch (Exception e){}
+                if(imm == null){
+                    i.append(token);
+                }
+            }
+            int opcode = iil.geto(i.toString());
+            int size = iil.gets(opcode);
+            program.write(opcode & 0xFF);
+
+            assert imm != null;
+            // cant because we set the size of each instruction and we expect a value
+            if(size == 2){
+                program.write(imm & 0xFF);
+            }
+            if(size == 3){
+                program.write(imm & 0xFF);
+                program.write((imm >> 8) & 0xFF);
+            }
+        }
         return program.toByteArray();
     }
 
-    // Map register to code 0–7
-    private static int registerCode(String reg) {
-        return switch (reg) {
-            case "B" -> 0;
-            case "C" -> 1;
-            case "D" -> 2;
-            case "E" -> 3;
-            case "H" -> 4;
-            case "L" -> 5;
-            case "M" -> 6; // memory at HL
-            case "A" -> 7;
-            default -> throw new RuntimeException("Unknown register: " + reg);
-        };
+    private static String removeComments(String s){
+        int commentIdx = s.indexOf(';');
+        if(commentIdx == -1) return s.trim();
+        return s.substring(0, commentIdx).trim();
     }
 
 }

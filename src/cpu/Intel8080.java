@@ -20,6 +20,27 @@ public class Intel8080 {
     private int interruptVector = 0;           // which interrupt to jump to
     private byte[] outputPorts = new byte[256];
 
+    public void run(){
+        pc = 0;
+        while(true){
+            if(HLT){
+                if(interruptPending && IE){
+                    HLT = false;
+                    handleInterrupt();
+                } else continue;
+            }
+            if(interruptPending && IE){
+                handleInterrupt();
+                continue;
+            }
+
+            byte instruction = memory.getRom(pc);
+            execute(instruction);
+        }
+    }
+    public void loadProgram(byte[] program){
+        memory.loadRom(program);
+    }
     public void execute(byte instruction){
         switch (instruction){
             case 0x00 -> System.out.println("NOP");
@@ -1726,13 +1747,13 @@ public class Intel8080 {
         if(flags.contains("AC")) AC = ((args[0] & 0x0F) + (args[1] & 0x0F)) > 0x0F;
         if(flags.contains("CY")) CY = ((args[0] & 0xFF) + (args[1] & 0xFF)) > 0xFF;
     }
-    private void handleInterrupt(int vector) {
+    private void handleInterrupt() {
         //push current pc onto stack
-        memory.push((byte)((pc & 0xFF00) >> 8));
-        memory.push((byte)(pc & 0xFF00));
+        memory.push((byte)((pc >> 8) & 0xFF));
+        memory.push((byte)(pc & 0xFF));
 
         //jump to interrupt address
-        pc = vector;
+        pc = interruptVector;
 
         //reset interrupt flags
         interruptPending = false;
