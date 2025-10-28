@@ -4,9 +4,9 @@ package util;
 import java.util.HashMap;
 
 public class InstructionInformationList{
-    private HashMap<String, Integer> mtoo;
-    private HashMap<Integer, String> otom;
-    private HashMap<Integer, Integer> otos;
+    private final HashMap<String, Integer> mtoo;
+    private final HashMap<Integer, String> otom;
+    private final HashMap<Integer, Integer> otos;
 
     public <T> InstructionInformationList(T...args){
         mtoo = new HashMap<>();

@@ -69,7 +69,7 @@ public class OpcodeTable {
                 0x3A,"LDA", 3,
                 0x3B,"DCX SP", 1,
                 0x3C,"INR A", 1,
-                0x3D,"DCR 1", 1,
+                0x3D,"DCR A", 1,
                 0x3E,"MVI A,", 2,
                 0x3F,"CMC", 1,
                 0x40,"MOV B, B", 1,

@@ -1,31 +1,25 @@
 package cpu;
 
 public class Memory {
+    public static int ROM_SIZE = 0x1000;
+    //ram and rom are together, rom starts at 0x00, ram starts at 0x10000
     private byte[] rom;
-    private byte[] ram;
     private int sp;
-    public Memory(int romSize, int ramSize){
-        rom = new byte[romSize];
-        ram = new byte[ramSize];
-        sp = ramSize-1;
+    public Memory(){
+        rom = new byte[ROM_SIZE];
+        sp = ROM_SIZE-1;
     }
-    public void setRom(int address, byte val){
-        rom[address] = val;
-    }
-    public byte getRom(int address){
+    public byte get(int address){
         return rom[address];
     }
-    public void setRam(int address, byte val){
-        ram[address] = val;
-    }
-    public byte getRam(int address){
-        return ram[address];
+    public void set(int address, byte val){
+        rom[address] = val;
     }
     public void push(byte val){
-        ram[--sp] = val;
+        rom[ROM_SIZE - (--sp)] = val;
     }
     public byte pop(){
-        return ram[sp++];
+        return rom[ROM_SIZE - sp++];
     }
     public void incSp(int val){
         sp += val;
@@ -38,11 +32,5 @@ public class Memory {
     }
     public void loadRom(byte[] program){
         System.arraycopy(program, 0, rom, 0, program.length);
-    }
-    public int getRomSize(){
-        return rom.length;
-    }
-    public int getRamSize(){
-        return ram.length;
     }
 }

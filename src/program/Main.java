@@ -10,14 +10,22 @@ import java.util.List;
 public class Main {
     public static void main(String[] args) throws InterruptedException {
         String[] lines = FileReader.ReadFile("C:\\Users\\stefa\\OneDrive\\Documents\\Intel8080\\src\\program\\program.asm");
+
         byte[] program = Assembler.assemble(lines);
         System.out.println(Arrays.toString(program));
+
         Intel8080 vm = new Intel8080();
         vm.loadProgram(program);
+
         Thread vmThread = new Thread(vm::run);
         vmThread.start();
-        Thread.sleep(100);
+
+
+        Thread.sleep(1000);
         System.out.println(vm.getOutputPorts()[0x0]);
+        System.out.println(vm.getOutputPorts()[0x1]);
+
+
         Thread.sleep(1000);
         System.exit(0);
     }

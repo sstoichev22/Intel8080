@@ -3,7 +3,7 @@ package cpu;
 public class Intel8080 {
     private byte A=0, B=0, C=0, D=0, E=0, H=0, L=0;
     //sp in rom
-    private final Memory memory = new Memory(8192, 4096);
+    private final Memory memory = new Memory();
     private int pc=0;
 
     //S=sign flag
@@ -22,7 +22,7 @@ public class Intel8080 {
 
     public void run(){
         pc = 0;
-        while(true){
+        while(pc < Memory.ROM_SIZE){
             if(HLT){
                 if(interruptPending && IE){
                     HLT = false;
@@ -34,8 +34,9 @@ public class Intel8080 {
                 continue;
             }
 
-            byte instruction = memory.getRom(pc++);
+            byte instruction = memory.get(pc++);
             execute(instruction);
+            System.out.printf("A=%d,B=%d,C=%d,D=%d,E=%d,H=%d,L=%d\n", A & 0xFF, B & 0xFF, C & 0xFF, D & 0xFF, E & 0xFF, H & 0xFF, L & 0xFF);
         }
     }
     public byte[] getOutputPorts(){
@@ -77,14 +78,14 @@ public class Intel8080 {
             case 0x00 -> System.out.println("NOP");
             case 0x01 -> {
                 //load imm16 into BC
-                C = memory.getRom(pc++);
-                B = memory.getRom(pc++);
+                C = memory.get(pc++);
+                B = memory.get(pc++);
                 System.out.printf("LXI B, %d\n", (B << 8) | C);
             }
             case 0x02 -> {
                 //content of A stored in memory address BC
                 short address = (short) ((B << 8) | C);
-                memory.setRam(address, A);
+                memory.set(address, A);
                 System.out.println("STAX B");
             }
             case 0x03 -> {
@@ -111,7 +112,7 @@ public class Intel8080 {
             }
             case 0x06 -> {
                 //put imm8 in B
-                B = memory.getRom(pc++);
+                B = memory.get(pc++);
                 System.out.printf("MVI B, %d\n", B);
             }
             case 0x07 -> {
@@ -136,7 +137,7 @@ public class Intel8080 {
             case 0x0A -> {
                 //load A from memory address BC
                 short address = (short) ((B << 8) | C);
-                A = memory.getRam(address);
+                A = memory.get(address);
                 System.out.println("LDAX B");
             }
             case 0x0B -> {
@@ -163,7 +164,7 @@ public class Intel8080 {
             }
             case 0x0E -> {
                 //C = imm8 in next byte
-                C = memory.getRom(pc++);
+                C = memory.get(pc++);
                 System.out.printf("MVI C, %d\n", C);
             }
             case 0x0F -> {
@@ -177,14 +178,14 @@ public class Intel8080 {
             case 0x10-> System.out.println("NOP");
             case 0x11->{
                 //load DE with imm16 in next 2 bytes
-                E = memory.getRom(pc++);
-                D = memory.getRom(pc++);
+                E = memory.get(pc++);
+                D = memory.get(pc++);
                 System.out.printf("LXI D, %d\n", (D << 8) | E);
             }
             case 0x12->{
                 //content of A stored at address DE
                 short address = (short) ((D << 8) | E);
-                memory.setRam(address, A);
+                memory.set(address, A);
                 System.out.println("STAX D");
             }
             case 0x13->{
@@ -211,7 +212,7 @@ public class Intel8080 {
             }
             case 0x16->{
                 //load D from imm8 on next byte
-                D = memory.getRom(pc++);
+                D = memory.get(pc++);
                 System.out.printf("MVI D, %d\n", D);
             }
             case 0x17->{
@@ -236,7 +237,7 @@ public class Intel8080 {
             case 0x1A->{
                 //address DE stored in A
                 short address = (short) ((D << 8) | E);
-                A = memory.getRam(address);
+                A = memory.get(address);
                 System.out.println("LDAX D");
             }
             case 0x1B->{
@@ -263,7 +264,7 @@ public class Intel8080 {
             }
             case 0x1E->{
                 //load imm8 in next byte into E
-                E = memory.getRom(pc++);
+                E = memory.get(pc++);
                 System.out.printf("MVI E, %d\n", E);
             }
             case 0x1F->{
@@ -286,17 +287,17 @@ public class Intel8080 {
             }
             case 0x21->{
                 //load imm16 from next 2 bytes into HL
-                L = memory.getRom(pc++);
-                H = memory.getRom(pc++);
-                System.out.printf("LXI H, %d", (H << 8) | L);
+                L = memory.get(pc++);
+                H = memory.get(pc++);
+                System.out.printf("LXI H, %d\n", (H << 8) | L);
             }
             case 0x22->{
                 //put HL into imm16 address
-                byte low = memory.getRom(pc++);
-                byte high = memory.getRom(pc++);
+                byte low = memory.get(pc++);
+                byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
-                memory.setRam(address, L);
-                memory.setRam(address+1, H);
+                memory.set(address, L);
+                memory.set(address+1, H);
                 System.out.printf("SHLD %s\n", Integer.toHexString(address));
             }
             case 0x23->{
@@ -323,7 +324,7 @@ public class Intel8080 {
             }
             case 0x26->{
                 //load imm8 in next byte to H
-                H = memory.getRom(pc++);
+                H = memory.get(pc++);
                 System.out.printf("MVI H, %d\n", H);
             }
             case 0x27->{
@@ -352,11 +353,11 @@ public class Intel8080 {
             }
             case 0x2A->{
                 //load contents of imm16 address into L and address+1 into H
-                byte low = memory.getRom(pc++);
-                byte high = memory.getRom(pc++);
+                byte low = memory.get(pc++);
+                byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
-                L = memory.getRam(address);
-                H = memory.getRam(address+1);
+                L = memory.get(address);
+                H = memory.get(address+1);
                 System.out.printf("LHLD %s\n", Integer.toHexString(address));
             }
             case 0x2B->{
@@ -383,7 +384,7 @@ public class Intel8080 {
             }
             case 0x2E->{
                 //load imm8 in next byte into L
-                L = memory.getRom(pc++);
+                L = memory.get(pc++);
                 System.out.printf("MVI L, %d\n", L);
             }
             case 0x2F->{
@@ -403,18 +404,18 @@ public class Intel8080 {
             }
             case 0x31->{
                 //load imm16 from next 2 bytes into stack pointer
-                byte low = memory.getRom(pc++);
-                byte high = memory.getRom(pc++);
+                byte low = memory.get(pc++);
+                byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
                 memory.setSp(address);
                 System.out.printf("LXI SP, %s", Integer.toHexString(address));
             }
             case 0x32->{
                 //send A to address of imm16 in next 2 bytes
-                byte low = memory.getRom(pc++);
-                byte high = memory.getRom(pc++);
+                byte low = memory.get(pc++);
+                byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
-                memory.setRam(address, A);
+                memory.set(address, A);
             }
             case 0x33->{
                 //sp++
@@ -424,26 +425,26 @@ public class Intel8080 {
             case 0x34->{
                 //val at address = val + 1 to address
                 short address = (short) ((H << 8) | L);
-                byte oldVal = memory.getRam(address);
+                byte oldVal = memory.get(address);
                 byte newVal = (byte) (oldVal + 1);
-                memory.setRam(address, newVal);
+                memory.set(address, newVal);
                 setFlags("Z,S,P,AC", newVal, oldVal);
                 System.out.println("INR M");
             }
             case 0x35->{
                 //val at address = val - 1 to address
                 short address = (short) ((H << 8) | L);
-                byte oldVal = memory.getRam(address);
+                byte oldVal = memory.get(address);
                 byte newVal = (byte) (oldVal - 1);
-                memory.setRam(address, newVal);
+                memory.set(address, newVal);
                 setFlags("Z,S,P,AC", newVal, oldVal);
                 System.out.println("DCR M");
             }
             case 0x36->{
                 //next byte to address HL
                 short address = (short) ((H << 8) | L);
-                byte val = memory.getRom(pc++);
-                memory.setRam(address, val);
+                byte val = memory.get(pc++);
+                memory.set(address, val);
                 System.out.printf("MVI M, %d\n", val);
             }
             case 0x37->{
@@ -461,10 +462,10 @@ public class Intel8080 {
             }
             case 0x3A->{
                 //imm16 address in next 2 bytes, val at address in A
-                byte low = memory.getRom(pc++);
-                byte high = memory.getRom(pc++);
+                byte low = memory.get(pc++);
+                byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
-                A = memory.getRam(address);
+                A = memory.get(address);
                 System.out.printf("LDA %s\n", Integer.toHexString(address));
             }
             case 0x3B->{
@@ -488,7 +489,7 @@ public class Intel8080 {
             }
             case 0x3E->{
                 //load imm8 in next byte to A
-                A = memory.getRom(pc++);
+                A = memory.get(pc++);
                 System.out.printf("MVI A, %d\n", A);
             }
             case 0x3F->{
@@ -524,7 +525,7 @@ public class Intel8080 {
             case 0x46->{
                 //move value at address HL into B
                 short address = (short) ((H << 8) | L);
-                B = memory.getRam(address);
+                B = memory.get(address);
                 System.out.println("MOV B, M");
             }
             case 0x47->{
@@ -558,7 +559,7 @@ public class Intel8080 {
             case 0x4E->{
                 //move value at address HL into C
                 short address = (short) ((H << 8) | L);
-                C = memory.getRam(address);
+                C = memory.get(address);
                 System.out.println("MOV C, M");
             }
             case 0x4F->{
@@ -592,7 +593,7 @@ public class Intel8080 {
             case 0x56->{
                 //move value at address HL into D
                 short address = (short) ((H << 8) | L);
-                D = memory.getRam(address);
+                D = memory.get(address);
                 System.out.println("MOV D, M");
             }
             case 0x57->{
@@ -626,7 +627,7 @@ public class Intel8080 {
             case 0x5E->{
                 //move value at address HL into E
                 short address = (short) ((H << 8) | L);
-                E = memory.getRam(address);
+                E = memory.get(address);
                 System.out.println("MOV E, M");
             }
             case 0x5F->{
@@ -660,7 +661,7 @@ public class Intel8080 {
             case 0x66->{
                 //move value at address HL into H
                 short address = (short) ((H << 8) | L);
-                H = memory.getRam(address);
+                H = memory.get(address);
                 System.out.println("MOV H, M");
             }
             case 0x67->{
@@ -695,7 +696,7 @@ public class Intel8080 {
             case 0x6E->{
                 //move value at address HL into L
                 short address = (short) ((H << 8) | L);
-                L = memory.getRam(address);
+                L = memory.get(address);
                 System.out.println("MOV L, M");
             }
             case 0x6F->{
@@ -705,37 +706,37 @@ public class Intel8080 {
             case 0x70->{
                 //move value in B to address in HL
                 short address = (short) ((H << 8) | L);
-                memory.setRam(address, B);
+                memory.set(address, B);
                 System.out.println("MOV M, B");
             }
             case 0x71->{
                 //move value in C to address in HL
                 short address = (short) ((H << 8) | L);
-                memory.setRam(address, C);
+                memory.set(address, C);
                 System.out.println("MOV M, C");
             }
             case 0x72->{
                 //move value in D to address in HL
                 short address = (short) ((H << 8) | L);
-                memory.setRam(address, D);
+                memory.set(address, D);
                 System.out.println("MOV M, D");
             }
             case 0x73->{
                 //move value in E to address in HL
                 short address = (short) ((H << 8) | L);
-                memory.setRam(address, E);
+                memory.set(address, E);
                 System.out.println("MOV M, E");
             }
             case 0x74->{
                 //move value in H to address in HL
                 short address = (short) ((H << 8) | L);
-                memory.setRam(address, H);
+                memory.set(address, H);
                 System.out.println("MOV M, H");
             }
             case 0x75->{
                 //move value in L to address in HL
                 short address = (short) ((H << 8) | L);
-                memory.setRam(address, L);
+                memory.set(address, L);
                 System.out.println("MOV M, L");
             }
             case 0x76->{
@@ -746,7 +747,7 @@ public class Intel8080 {
             case 0x77->{
                 //move value in A to address in HL
                 short address = (short) ((H << 8) | L);
-                memory.setRam(address, A);
+                memory.set(address, A);
                 System.out.println("MOV M, A");
             }
             case 0x78->{
@@ -776,7 +777,7 @@ public class Intel8080 {
             case 0x7E->{
                 //move value at address HL into A
                 short address = (short) ((H << 8) | L);
-                A = memory.getRam(address);
+                A = memory.get(address);
                 System.out.println("MOV A, M");
             }
             case 0x7F->{
@@ -828,7 +829,7 @@ public class Intel8080 {
             case (byte) 0x86 ->{
                 //add val at address HL to A
                 byte oldA = A;
-                A += memory.getRam((H << 8) | L);
+                A += memory.get((H << 8) | L);
                 setFlags("Z,S,P,CY,AC", A, oldA);
                 System.out.println("ADD M");
             }
@@ -884,7 +885,7 @@ public class Intel8080 {
             case (byte) 0x8E ->{
                 //add val at HL to A with carry
                 byte oldA = A;
-                A += (byte) (memory.getRam((H << 8) | L) + (CY?1:0));
+                A += (byte) (memory.get((H << 8) | L) + (CY?1:0));
                 setFlags("Z,S,P,CY,AC", A, oldA);
                 System.out.println("ADC M");
             }
@@ -940,7 +941,7 @@ public class Intel8080 {
             case (byte) 0x96->{
                 //sub val at HL to A
                 byte oldA = A;
-                A -= memory.getRam((H << 8) | L);
+                A -= memory.get((H << 8) | L);
                 setFlags("Z,S,P,CY,AC", A, oldA);
                 System.out.println("SUB M");
             }
@@ -996,7 +997,7 @@ public class Intel8080 {
             case (byte) 0x9E->{
                 //sub val at HL to A with borrow
                 byte oldA = A;
-                A -= (byte) (memory.getRam((H << 8) | L) - (CY?1:0));
+                A -= (byte) (memory.get((H << 8) | L) - (CY?1:0));
                 setFlags("Z,S,P,CY,AC", A, oldA);
                 System.out.println("SBB M");
             }
@@ -1052,7 +1053,7 @@ public class Intel8080 {
             case (byte) 0xA6->{
                 //A and val at HL
                 byte oldA = A;
-                A &= memory.getRam((H << 8) | L);
+                A &= memory.get((H << 8) | L);
                 setFlags("Z,S,P,CY,AC", A, oldA);
                 System.out.println("ANA M");
             }
@@ -1108,7 +1109,7 @@ public class Intel8080 {
             case (byte) 0xAE->{
                 //A xor val at HL
                 byte oldA = A;
-                A ^= memory.getRam((H << 8) | L);
+                A ^= memory.get((H << 8) | L);
                 setFlags("Z,S,P,CY,AC", A, oldA);
                 System.out.println("XRA M");
             }
@@ -1164,7 +1165,7 @@ public class Intel8080 {
             case (byte) 0xB6->{
                 //A or val at HL
                 byte oldA = A;
-                A |= memory.getRam((H << 8) | L);
+                A |= memory.get((H << 8) | L);
                 setFlags("Z,S,P,CY,AC", A, oldA);
                 System.out.println("ORA M");
             }
@@ -1213,7 +1214,7 @@ public class Intel8080 {
             }
             case (byte) 0xBE->{
                 //compare A and val at HL
-                byte result = (byte) (A - memory.getRam((H << 8) | L));
+                byte result = (byte) (A - memory.get((H << 8) | L));
                 setFlags("Z,S,P,CY,AC", result, A);
                 System.out.println("CMP M");
             }
@@ -1239,8 +1240,8 @@ public class Intel8080 {
             }
             case (byte) 0xC2->{
                 //jump if nz to imm16 address
-                byte low = memory.getRom(pc++);
-                byte high = memory.getRom(pc++);
+                byte low = memory.get(pc++);
+                byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
                 if(!Z){
                     pc = address;
@@ -1249,16 +1250,16 @@ public class Intel8080 {
             }
             case (byte) 0xC3->{
                 //jump to imm16 address
-                byte low = memory.getRom(pc++);
-                byte high = memory.getRom(pc++);
+                byte low = memory.get(pc++);
+                byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
                 pc = address;
                 System.out.printf("JMP %s\n", Integer.toHexString(address));
             }
             case (byte) 0xC4->{
                 //call if nz to imm16 address
-                byte low = memory.getRom(pc++);
-                byte high = memory.getRom(pc++);
+                byte low = memory.get(pc++);
+                byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
                 pc = address;
                 System.out.printf("CNZ %s\n", Integer.toHexString(address));
@@ -1271,7 +1272,7 @@ public class Intel8080 {
             }
             case (byte) 0xC6->{
                 //add imm8 in next byte to A
-                byte imm8 = memory.getRom(pc++);
+                byte imm8 = memory.get(pc++);
                 A += imm8;
                 System.out.printf("ADI %d\n", imm8);
             }
@@ -1302,8 +1303,8 @@ public class Intel8080 {
             }
             case (byte) 0xCA->{
                 //jumps to imm16 address if z
-                byte low = memory.getRom(pc++);
-                byte high = memory.getRom(pc++);
+                byte low = memory.get(pc++);
+                byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
                 if(Z){
                     pc = address;
@@ -1313,8 +1314,8 @@ public class Intel8080 {
             case (byte) 0xCB-> System.out.println("NOP");
             case (byte) 0xCC->{
                 //calls to imm16 address if z
-                byte low = memory.getRom(pc++);
-                byte high = memory.getRom(pc++);
+                byte low = memory.get(pc++);
+                byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
                 if(Z){
                     byte pclow = (byte)((pc & 0xFF00) >> 8);
@@ -1327,8 +1328,8 @@ public class Intel8080 {
             }
             case (byte) 0xCD->{
                 //calls to imm16 address
-                byte low = memory.getRom(pc++);
-                byte high = memory.getRom(pc++);
+                byte low = memory.get(pc++);
+                byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
                 byte pclow = (byte)((pc & 0xFF00) >> 8);
                 byte pchigh = (byte)(pc & 0x00FF);
@@ -1340,7 +1341,7 @@ public class Intel8080 {
             case (byte) 0xCE->{
                 // add to A with carry immediate
                 byte oldA = A;
-                byte val = memory.getRom(pc++);
+                byte val = memory.get(pc++);
                 A = (byte) (A + val + (CY?1:0));
                 setFlags("Z,S,P,CY,AC", A, oldA);
                 System.out.printf("ACI %d\n", val);
@@ -1371,8 +1372,8 @@ public class Intel8080 {
             }
             case (byte) 0xD2->{
                 //jump if ncy to imm16 address
-                byte low = memory.getRom(pc++);
-                byte high = memory.getRom(pc++);
+                byte low = memory.get(pc++);
+                byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
                 if(!CY){
                     pc = address;
@@ -1381,14 +1382,14 @@ public class Intel8080 {
             }
             case (byte) 0xD3->{
                 //send A to output port imm8 in next byte
-                byte imm8 = memory.getRom(pc++);
+                byte imm8 = memory.get(pc++);
                 outputPorts[imm8 & 0xFF] = A;
                 System.out.printf("OUT %d\n", imm8);
             }
             case (byte) 0xD4->{
                 //calls to imm16 address if ncy
-                byte low = memory.getRom(pc++);
-                byte high = memory.getRom(pc++);
+                byte low = memory.get(pc++);
+                byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
                 if(!CY){
                     byte pclow = (byte)((pc & 0xFF00) >> 8);
@@ -1407,7 +1408,7 @@ public class Intel8080 {
             }
             case (byte) 0xD6->{
                 //A sub imm8
-                byte val = memory.getRom(pc++);
+                byte val = memory.get(pc++);
                 byte oldA = A;
                 A -= val;
                 setFlags("Z,S,P,CY,AC", A, oldA);
@@ -1434,8 +1435,8 @@ public class Intel8080 {
             case (byte) 0xD9-> System.out.println("NOP");
             case (byte) 0xDA->{
                 //jump if cy to imm16 address
-                byte low = memory.getRom(pc++);
-                byte high = memory.getRom(pc++);
+                byte low = memory.get(pc++);
+                byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
                 if(CY){
                     pc = address;
@@ -1444,14 +1445,14 @@ public class Intel8080 {
             }
             case (byte) 0xDB->{
                 //send imm8 outputPort in next byte to A
-                byte imm8 = memory.getRom(pc++);
+                byte imm8 = memory.get(pc++);
                 A = outputPorts[imm8 & 0xFF];
                 System.out.printf("IN, %d\n", imm8);
             }
             case (byte) 0xDC->{
                 //calls to imm16 address if cy
-                byte low = memory.getRom(pc++);
-                byte high = memory.getRom(pc++);
+                byte low = memory.get(pc++);
+                byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
                 if(CY){
                     byte pclow = (byte)((pc & 0xFF00) >> 8);
@@ -1465,7 +1466,7 @@ public class Intel8080 {
             case (byte) 0xDD-> System.out.println("NOP");
             case (byte) 0xDE->{
                 //A sub imm8 in next byte and carry
-                byte imm8 = memory.getRom(pc++);
+                byte imm8 = memory.get(pc++);
                 byte oldA = A;
                 A = (byte) (A - imm8 - (CY?1:0));
                 setFlags("Z,S,P,CY,AC", A, oldA);
@@ -1497,8 +1498,8 @@ public class Intel8080 {
             }
             case (byte) 0xE2->{
                 //if parity odd, jump to imm16 address in next 2 bytes
-                byte low = memory.getRom(pc++);
-                byte high = memory.getRom(pc++);
+                byte low = memory.get(pc++);
+                byte high = memory.get(pc++);
                 short address = (short) ((high << 8) & low);
                 if(!P){
                     byte pclow = (byte)((pc & 0xFF00) >> 8);
@@ -1513,16 +1514,16 @@ public class Intel8080 {
                 //switch sp, sp+1 with HL
                 byte l = L, h = H;
                 int sp = memory.getSp();
-                L = memory.getRam(sp);
-                H = memory.getRam(sp+1);
-                memory.setRam(sp, l);
-                memory.setRam(sp+1, h);
+                L = memory.get(sp);
+                H = memory.get(sp+1);
+                memory.set(sp, l);
+                memory.set(sp+1, h);
                 System.out.println("XTHL");
             }
             case (byte) 0xE4->{
                 //calls to imm16 address if parity odd
-                byte low = memory.getRom(pc++);
-                byte high = memory.getRom(pc++);
+                byte low = memory.get(pc++);
+                byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
                 if(!P){
                     byte pclow = (byte)((pc & 0xFF00) >> 8);
@@ -1541,7 +1542,7 @@ public class Intel8080 {
             }
             case (byte) 0xE6->{
                 //A and imm8 in next byte
-                byte imm8 = memory.getRom(pc++);
+                byte imm8 = memory.get(pc++);
                 byte oldA = A;
                 A &= imm8;
                 setFlags("Z,S,P,CY,AC", A, oldA);
@@ -1572,8 +1573,8 @@ public class Intel8080 {
             }
             case (byte) 0xEA->{
                 //if parity even, jump to imm16 address in next 2 bytes
-                byte low = memory.getRom(pc++);
-                byte high = memory.getRom(pc++);
+                byte low = memory.get(pc++);
+                byte high = memory.get(pc++);
                 short address = (short) ((high << 8) & low);
                 if(P){
                     byte pclow = (byte)((pc & 0xFF00) >> 8);
@@ -1595,8 +1596,8 @@ public class Intel8080 {
             }
             case (byte) 0xEC->{
                 //calls to imm16 address if parity even
-                byte low = memory.getRom(pc++);
-                byte high = memory.getRom(pc++);
+                byte low = memory.get(pc++);
+                byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
                 if(P){
                     byte pclow = (byte)((pc & 0xFF00) >> 8);
@@ -1610,7 +1611,7 @@ public class Intel8080 {
             case (byte) 0xED-> System.out.println("NOP");
             case (byte) 0xEE->{
                 //A xor imm8 in next byte
-                byte imm8 = memory.getRom(pc++);
+                byte imm8 = memory.get(pc++);
                 byte oldA = A;
                 A ^= imm8;
                 setFlags("Z,S,P,CY,AC", A, oldA);
@@ -1648,8 +1649,8 @@ public class Intel8080 {
             }
             case (byte) 0xF2->{
                 //jump to imm16 in next 2 bytes if positive
-                byte low = memory.getRom(pc++);
-                byte high = memory.getRom(pc++);
+                byte low = memory.get(pc++);
+                byte high = memory.get(pc++);
                 short address = (short) ((high << 8) & low);
                 if(!S){
                     byte pclow = (byte)((pc & 0xFF00) >> 8);
@@ -1667,8 +1668,8 @@ public class Intel8080 {
             }
             case (byte) 0xF4->{
                 //calls to imm16 address if positive
-                byte low = memory.getRom(pc++);
-                byte high = memory.getRom(pc++);
+                byte low = memory.get(pc++);
+                byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
                 if(!S){
                     byte pclow = (byte)((pc & 0xFF00) >> 8);
@@ -1683,13 +1684,13 @@ public class Intel8080 {
                 //flags to val at sp-2, A to val at sp-1, sp-=2
                 byte flags = (byte) (((S?1:0) << 7) | ((Z?1:0) << 6) | ((AC?1:0) << 4) | ((P?1:0) << 2) | 0x02 | ((CY?1:0)));
                 int sp = memory.getSp();
-                memory.setRam(sp-2, flags);
-                memory.setRam(sp-1, A);
+                memory.set(sp-2, flags);
+                memory.set(sp-1, A);
                 System.out.println("PUSH PSW");
             }
             case (byte) 0xF6->{
                 //A or imm8 in next byte
-                byte imm8 = memory.getRom(pc++);
+                byte imm8 = memory.get(pc++);
                 byte oldA = A;
                 A |= imm8;
                 setFlags("Z,S,P,CY,AC", A, oldA);
@@ -1721,8 +1722,8 @@ public class Intel8080 {
             }
             case (byte) 0xFA->{
                 //jump to imm16 in next 2 bytes if negative
-                byte low = memory.getRom(pc++);
-                byte high = memory.getRom(pc++);
+                byte low = memory.get(pc++);
+                byte high = memory.get(pc++);
                 short address = (short) ((high << 8) & low);
                 if(S){
                     byte pclow = (byte)((pc & 0xFF00) >> 8);
@@ -1740,8 +1741,8 @@ public class Intel8080 {
             }
             case (byte) 0xFC->{
                 //calls to imm16 address if negative
-                byte low = memory.getRom(pc++);
-                byte high = memory.getRom(pc++);
+                byte low = memory.get(pc++);
+                byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
                 if(S){
                     byte pclow = (byte)((pc & 0xFF00) >> 8);
@@ -1755,7 +1756,7 @@ public class Intel8080 {
             case (byte) 0xFD-> System.out.println("NOP");
             case (byte) 0xFE->{
                 //compare A and val in next byte
-                byte imm8 = memory.getRom(pc++);
+                byte imm8 = memory.get(pc++);
                 byte result = (byte) (A - imm8);
                 setFlags("Z,S,P,CY,AC", result, A);
                 System.out.printf("CPI %d\n", imm8);

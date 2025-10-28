@@ -1,22 +1,32 @@
 package assembler;
 
+import cpu.Memory;
 import util.InstructionInformationList;
+import util.LabelList;
 
-import java.io.ByteArrayOutputStream;
 import java.util.*;
 
 public class Assembler {
     public static byte[] assemble(String[] lines) {
+        //all the opcodes
         InstructionInformationList iil = OpcodeTable.OPCODES;
-        //label to address
-        HashMap<String, Integer> ltoa = new HashMap<>();
+
+
+        //this takes care of vars and labels
+        //a var would be            -> (name, pc, size) -> rom[address] = val
+        //a normal label would be   -> (name, pc, 2)
+        LabelList labelData = new LabelList();
+
+        //put here so vars could send val to memory
+        byte[] program = new byte[Memory.ROM_SIZE];
 
         //get all labels in advance
-        List<String> labels = new ArrayList<>();
+        List<String> labelList = new ArrayList<>();
         for(int i = 0 ; i < lines.length; i++){
+            lines[i] = lines[i].toUpperCase();
             int idx = lines[i].indexOf(':');
             if(idx != -1)
-                labels.add(lines[i].substring(0, idx));
+                labelList.add(lines[i].substring(0, idx));
         }
         //pass one will go through each instruction and
         // when it sees some label it will note the label and pc
@@ -27,27 +37,74 @@ public class Assembler {
             lines[i] = removeComments(lines[i]);
 
             //add <label, pc> to 'labels' and remove from line
-            if(lines[i].contains(":")){
-                int idx = lines[i].indexOf(':');
-                ltoa.put(lines[i].substring(0, idx), pc);
-                lines[i] = lines[i].substring(idx+1).trim();
+            //this could also be a variable
+            String line = lines[i].toUpperCase();
+            if(line.contains(":")){
+                int idx = line.indexOf(':');
+                //handle variables
+                if(line.contains("DB ") || line.contains("DW ") || line.contains("DS ")) {
+                    String[] tokens = line.split(",");
+                    String[] firstElement = tokens[0].split("\\s+");
+                    tokens[0] = firstElement[firstElement.length-1];
+                    if (line.contains("DB ")) {
+                        labelData.put(line.substring(0, idx), pc, 1);
+                        for(int t = 0; t < tokens.length; t++) {
+                            Integer imm8 = decodeImmediate(tokens[t]);
+                            if (imm8 != null)
+                                program[pc++] = (byte) (imm8 & 0xFF);
+                            else throw new RuntimeException("No value for variable: " + line.substring(0, idx));
+                        }
+                    }
+                    if (line.contains("DW ")) {
+                        for(int t = 0; t < tokens.length; t++) {
+                            Integer imm16 = decodeImmediate(tokens[t]);
+                            if (imm16 != null) {
+                                byte low = (byte) (imm16 & 0xFF);
+                                byte high = (byte) ((imm16 >> 8) & 0xFF);
+                                labelData.put(line.substring(0, idx), pc, 2);
+                                program[pc++] = low;
+                                program[pc++] = high;
+                            } else throw new RuntimeException("No value for variable: " + line.substring(0, idx));
+                        }
+                    }
+                    if (line.contains("DS ")) {
+                        int n = Integer.parseInt(tokens[tokens.length-1]);
+                        labelData.put(line.substring(0, idx), pc+=n, n);
+                    }
+                    lines[i] = "";
+                    continue;
+                }
+                labelData.put(line.substring(0, idx), pc, 2);
+                lines[i] = line.substring(idx+1).trim();
             }
             //skip if after label removal(or not) is empty
             if(lines[i].isEmpty()) continue;
+
+            //handle org
+            if(lines[i].startsWith("ORG")){
+                Integer address = decodeImmediate(lines[i].split("\\s+")[1]);
+                if(address != null){
+                    pc = address;
+                }
+                continue;
+            }
 
             //check if any token is an immediate or label and collect tokens that are neither
             String[] tokens = lines[i].split("\\s+");
             //imm or label
             String mnemonic = "", iorl = "";
+            System.out.println(tokens[0]);
             for(String token : tokens){
                 Integer imm = decodeImmediate(token);
                 //if imm is null it is not a number in any form(hex,bin,oct,dec)
                 //imm==null means it's a word,
-                // labels not containing the word means it's a part of opcode
-                if(imm == null && !labels.contains(token)){
+                //labels not containing the word means it's a part of opcode
+                //vars not containing the word means it's a part of opcode
+                System.out.println(imm == null );
+                if(imm == null && !labelList.contains(token)){
                     mnemonic += token + " ";
                 } else iorl += (imm==null?token:imm);
-                //guaranteed to have one immediate per instruction
+                //guaranteed to have at most one immediate per instruction
             }
             mnemonic = mnemonic.trim();
 
@@ -55,26 +112,45 @@ public class Assembler {
             lines[i] = iil.geto(mnemonic) + " " + iorl;
             //get and add size to pc
             int size = iil.gets(mnemonic);
+
+            if(size == -1){
+                throw new RuntimeException("Unknown opcode: " + Arrays.toString(tokens));
+            }
             pc += size;
         }
         //now we know where labels are
         //in pass 2 we replace labels with imm16
-        //all lines are in form '(opcode) imm8/16/label
-        //if imm8 then size is 2
-        //if imm16 or label it is size 3
-        ByteArrayOutputStream program = new ByteArrayOutputStream();
+        //all lines are in form '(opcode) imm8/16/label/var'
+        //if imm8 or var then size is 2
+        //if imm16 or label or var it is size 3
+        pc = 0;
         for(String instruction : lines){
-            //write opcode
             if(instruction.isEmpty()) continue;
+
+            if(instruction.startsWith("ORG")){
+                Integer address = decodeImmediate(instruction.split("\\s+")[1]);
+                if(address != null){
+                    pc = address;
+                }
+                continue;
+            }
+
+
             String[] tokens = instruction.split("\\s+");
             int opcode = Integer.parseInt(tokens[0]) & 0xFF;
-            program.write(opcode & 0xFF);
+            program[pc++] = (byte) (opcode & 0xFF);
             int size = iil.gets(opcode);
             //size = 1 then there is no imm or label
             if(size == 2){
                 //imm8
-                byte imm8 = (byte) (Integer.parseInt(tokens[1]) & 0xFF);
-                program.write(imm8 & 0xFF);
+                Integer imm8 = decodeImmediate(tokens[1]);
+                if(imm8 != null){
+                    program[pc++] = (byte) (imm8 & 0xFF);
+                } else{
+                    int address = labelData.geta(tokens[1]);
+                    program[pc++] = program[address & 0xFF];
+                }
+
             }
             if(size == 3){
                 //imm16
@@ -82,20 +158,22 @@ public class Assembler {
                     int imm16 = Integer.parseInt(tokens[1]) & 0xFFFF;
                     byte low = (byte) (imm16 & 0xFF);
                     byte high = (byte) ((imm16 >> 8) & 0xFF);
-                    program.write(low);
-                    program.write(high);
+                    program[pc++] = (byte) (low & 0xFF);
+                    program[pc++] = (byte) (high & 0xFF);
                 }
-                //label
-                else{
-                    int address = ltoa.get(tokens[1]);
+                //label/var
+                else if (labelList.contains(tokens[1])){
+                    System.out.println(tokens[1]);
+                    int address = labelData.geta(tokens[1]);
                     byte low = (byte) (address & 0xFF);
                     byte high = (byte) ((address >> 8) & 0xFF);
-                    program.write(low);
-                    program.write(high);
+                    program[pc++] = low;
+                    program[pc++] = high;
+
                 }
             }
         }
-        return program.toByteArray();
+        return program;
     }
 
     private static boolean isNumber(String word){
@@ -105,7 +183,7 @@ public class Assembler {
     private static String removeComments(String s){
         int commentIdx = s.indexOf(';');
         if(commentIdx == -1) return s.trim();
-        return s.substring(0, commentIdx).trim();
+        return s.substring(0, commentIdx).trim().toUpperCase();
     }
 
     private static Integer decodeImmediate(String imm){
@@ -123,7 +201,7 @@ public class Assembler {
                 }
                 return res;
             }
-            if(imm.endsWith("H")){
+            if(imm.endsWith("H") && imm.length() > 1){
                 int res = 0;
                 int power = 0;
                 for(int i = imm.length()-2 ; i >= 0; i--, power++){
@@ -157,9 +235,7 @@ public class Assembler {
         if(imm.length() == 3 && imm.charAt(0) == '\'' && imm.charAt(2) == '\''){
             return (int) imm.charAt(1);
         }
-        for(int i = 0 ; i < imm.length(); i++){
-            if(!Character.isDigit(imm.charAt(i))) return null;
-        }
+        if(!imm.matches("-?[0-9]+")) return null;
         return Integer.parseInt(imm);
     }
     //char to hex
