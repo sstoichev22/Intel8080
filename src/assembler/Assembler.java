@@ -93,14 +93,12 @@ public class Assembler {
             String[] tokens = lines[i].split("\\s+");
             //imm or label
             String mnemonic = "", iorl = "";
-            System.out.println(tokens[0]);
             for(String token : tokens){
                 Integer imm = decodeImmediate(token);
                 //if imm is null it is not a number in any form(hex,bin,oct,dec)
                 //imm==null means it's a word,
                 //labels not containing the word means it's a part of opcode
                 //vars not containing the word means it's a part of opcode
-                System.out.println(imm == null );
                 if(imm == null && !labelList.contains(token)){
                     mnemonic += token + " ";
                 } else iorl += (imm==null?token:imm);
@@ -123,9 +121,10 @@ public class Assembler {
         //all lines are in form '(opcode) imm8/16/label/var'
         //if imm8 or var then size is 2
         //if imm16 or label or var it is size 3
-        pc = 0;
-        for(String instruction : lines){
-            if(instruction.isEmpty()) continue;
+        pc=0;
+        for(int i = 0 ; i < lines.length; i++){
+            String instruction = lines[i];
+            if(instruction.trim().isEmpty()) continue;
 
             if(instruction.startsWith("ORG")){
                 Integer address = decodeImmediate(instruction.split("\\s+")[1]);
@@ -154,22 +153,25 @@ public class Assembler {
             }
             if(size == 3){
                 //imm16
-                if(isNumber(tokens[1])){
-                    int imm16 = Integer.parseInt(tokens[1]) & 0xFFFF;
-                    byte low = (byte) (imm16 & 0xFF);
-                    byte high = (byte) ((imm16 >> 8) & 0xFF);
-                    program[pc++] = (byte) (low & 0xFF);
-                    program[pc++] = (byte) (high & 0xFF);
-                }
-                //label/var
-                else if (labelList.contains(tokens[1])){
-                    System.out.println(tokens[1]);
-                    int address = labelData.geta(tokens[1]);
-                    byte low = (byte) (address & 0xFF);
-                    byte high = (byte) ((address >> 8) & 0xFF);
-                    program[pc++] = low;
-                    program[pc++] = high;
+                try {
+                    if (isNumber(tokens[1])) {
+                        int imm16 = Integer.parseInt(tokens[1]) & 0xFFFF;
+                        byte low = (byte) (imm16 & 0xFF);
+                        byte high = (byte) ((imm16 >> 8) & 0xFF);
+                        program[pc++] = (byte) (low & 0xFF);
+                        program[pc++] = (byte) (high & 0xFF);
+                    }
+                    //label/var
+                    else if (labelList.contains(tokens[1])) {
+                        int address = labelData.geta(tokens[1]);
+                        byte low = (byte) (address & 0xFF);
+                        byte high = (byte) ((address >> 8) & 0xFF);
+                        program[pc++] = low;
+                        program[pc++] = high;
 
+                    }
+                } catch(ArrayIndexOutOfBoundsException e){
+                    System.err.printf("Incorrect number of args on line %d.\n", i+1);
                 }
             }
         }

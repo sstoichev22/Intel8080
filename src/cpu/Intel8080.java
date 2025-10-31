@@ -1,10 +1,15 @@
 package cpu;
 
+import io.Display;
+
+import static cpu.Memory.*;
+
 public class Intel8080 {
     private byte A=0, B=0, C=0, D=0, E=0, H=0, L=0;
     //sp in rom
     private final Memory memory = new Memory();
-    private int pc=0;
+    private Display display;
+    private int pc;
 
     //S=sign flag
     //Z=zero flag
@@ -22,7 +27,7 @@ public class Intel8080 {
 
     public void run(){
         pc = 0;
-        while(pc < Memory.ROM_SIZE){
+        while(pc >= ROM_START && pc <= ROM_END){
             if(HLT){
                 if(interruptPending && IE){
                     HLT = false;
@@ -36,7 +41,8 @@ public class Intel8080 {
 
             byte instruction = memory.get(pc++);
             execute(instruction);
-            System.out.printf("A=%d,B=%d,C=%d,D=%d,E=%d,H=%d,L=%d\n", A & 0xFF, B & 0xFF, C & 0xFF, D & 0xFF, E & 0xFF, H & 0xFF, L & 0xFF);
+            display.refresh();
+//            System.out.printf("A=%d,B=%d,C=%d,D=%d,E=%d,H=%d,L=%d\n", A & 0xFF, B & 0xFF, C & 0xFF, D & 0xFF, E & 0xFF, H & 0xFF, L & 0xFF);
         }
     }
     public byte[] getOutputPorts(){
@@ -46,6 +52,9 @@ public class Intel8080 {
         memory.loadRom(program);
     }
 
+    public void setDisplay(Display display){
+        this.display = display;
+    }
     public Memory getMemory(){
         return memory;
     }
@@ -1331,12 +1340,12 @@ public class Intel8080 {
                 byte low = memory.get(pc++);
                 byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
-                byte pclow = (byte)((pc & 0xFF00) >> 8);
-                byte pchigh = (byte)(pc & 0x00FF);
+                byte pclow = (byte)((pc >> 8) & 0xFF);
+                byte pchigh = (byte)(pc & 0xFF);
                 memory.push(pclow);
                 memory.push(pchigh);
                 pc = address;
-                System.out.printf("CALL %s\n", Integer.toHexString(address));
+                System.out.printf("CALL %04X\n", address);
             }
             case (byte) 0xCE->{
                 // add to A with carry immediate
@@ -1757,7 +1766,7 @@ public class Intel8080 {
             case (byte) 0xFE->{
                 //compare A and val in next byte
                 byte imm8 = memory.get(pc++);
-                byte result = (byte) (A - imm8);
+                byte result = (byte) ((A&0xFF) - (imm8&0xFF));
                 setFlags("Z,S,P,CY,AC", result, A);
                 System.out.printf("CPI %d\n", imm8);
             }

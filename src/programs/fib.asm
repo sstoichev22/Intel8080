@@ -5,6 +5,10 @@ MVI D, 1
 
 CALL loop
 
+MOV A, D
+OUT 0x0
+HLT
+
 loop:
     DCR B
     MOV A, B
@@ -23,6 +27,4 @@ loop:
     JMP loop
 
 
-MOV A, D
-OUT 0x0
-HLT
+
