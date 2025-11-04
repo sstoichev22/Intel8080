@@ -1,5 +1,7 @@
 package cpu;
 
+import io.Input;
+
 public class Memory {
     public static int ROM_SIZE = 0x10000;
 
@@ -20,30 +22,30 @@ public class Memory {
         sp = ROM_SIZE-1;
     }
     public byte get(int address){
-        return memory[address];
+        return memory[address & 0xFFFF];
     }
     public void set(int address, byte val){
         memory[address & 0xFFFF] = val;
     }
     public void push(byte val){
         sp--;
-        int address = sp & 0xFFFF;
+        int address = sp;
         if(address >= RAM_START && address <= RAM_END)
-            memory[address] = val;
+            memory[address & 0xFFFF] = val;
         else throw new RuntimeException(String.format("Ram out of bounds: %d for range: [%d,%d]\n", address, RAM_START, RAM_END));
     }
     public byte pop(){
         int address = sp;
         sp++;
         if(address >= RAM_START && address <= RAM_END)
-            return memory[address];
+            return memory[address & 0xFFFF];
         else throw new RuntimeException(String.format("Ram out of bounds: %d for range: [%d,%d]\n", address, RAM_START, RAM_END));
     }
     public void incSp(int val){
         sp += val;
     }
     public void setSp(int address){
-        sp = address;
+        sp = address & 0xFFFF;
     }
     public int getSp(){
         return sp;

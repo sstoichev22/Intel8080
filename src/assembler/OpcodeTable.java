@@ -35,7 +35,7 @@ public class OpcodeTable {
                 0x18,"NOP", 1,
                 0x19,"DAD D", 1,
                 0x1A,"LDAX D", 1,
-                0x1B,"DCX", 1,
+                0x1B,"DCX D", 1,
                 0x1C,"INR E", 1,
                 0x1D,"DCR E", 1,
                 0x1E,"MVI E,", 2,

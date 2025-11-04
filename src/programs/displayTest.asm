@@ -1,6 +1,6 @@
 ; HL = VRAM pointer
 lxi h, 0x8000
-mvi c, 64
+mvi c, 3
 
 call byte_loop
 

@@ -23,6 +23,9 @@ public class Assembler {
         //get all labels in advance
         List<String> labelList = new ArrayList<>();
         for(int i = 0 ; i < lines.length; i++){
+            //remove comments
+            lines[i] = removeComments(lines[i]);
+            if(lines[i].trim().isEmpty()) continue;
             lines[i] = lines[i].toUpperCase();
             int idx = lines[i].indexOf(':');
             if(idx != -1)
@@ -33,8 +36,7 @@ public class Assembler {
         //then remove the label
         int pc = 0;
         for(int i = 0 ; i < lines.length; i++){
-            //remove comments
-            lines[i] = removeComments(lines[i]);
+            if(lines[i].trim().isEmpty()) continue;
 
             //add <label, pc> to 'labels' and remove from line
             //this could also be a variable
@@ -69,7 +71,8 @@ public class Assembler {
                     }
                     if (line.contains("DS ")) {
                         int n = Integer.parseInt(tokens[tokens.length-1]);
-                        labelData.put(line.substring(0, idx), pc+=n, n);
+                        labelData.put(line.substring(0, idx), pc, n);
+                        pc += n;
                     }
                     lines[i] = "";
                     continue;
@@ -84,7 +87,7 @@ public class Assembler {
             if(lines[i].startsWith("ORG")){
                 Integer address = decodeImmediate(lines[i].split("\\s+")[1]);
                 if(address != null){
-                    pc = address;
+                    pc = address & 0xFFFF;
                 }
                 continue;
             }
@@ -112,7 +115,7 @@ public class Assembler {
             int size = iil.gets(mnemonic);
 
             if(size == -1){
-                throw new RuntimeException("Unknown opcode: " + Arrays.toString(tokens));
+                throw new RuntimeException("Unknown opcode: " + Arrays.toString(tokens) + " at line: "+(i+1));
             }
             pc += size;
         }
@@ -129,7 +132,7 @@ public class Assembler {
             if(instruction.startsWith("ORG")){
                 Integer address = decodeImmediate(instruction.split("\\s+")[1]);
                 if(address != null){
-                    pc = address;
+                    pc = address & 0xFFFF;
                 }
                 continue;
             }
@@ -147,7 +150,7 @@ public class Assembler {
                     program[pc++] = (byte) (imm8 & 0xFF);
                 } else{
                     int address = labelData.geta(tokens[1]);
-                    program[pc++] = program[address & 0xFF];
+                    program[pc++] = program[address & 0xFFFF];
                 }
 
             }
@@ -163,7 +166,7 @@ public class Assembler {
                     }
                     //label/var
                     else if (labelList.contains(tokens[1])) {
-                        int address = labelData.geta(tokens[1]);
+                        int address = labelData.geta(tokens[1]) & 0xFFFF;
                         byte low = (byte) (address & 0xFF);
                         byte high = (byte) ((address >> 8) & 0xFF);
                         program[pc++] = low;
@@ -224,14 +227,25 @@ public class Assembler {
             return res;
         }
         //binary
-        if(imm.endsWith("B") && imm.length() > 1){
-            int res = 0;
-            int power = 0;
-            for(int i = imm.length()-2 ; i >= 0; i--, power++){
-                if(!(imm.charAt(i) == '0' || imm.charAt(i) == '1')) return null;
-                res += (int) Math.pow(2, power) * (imm.charAt(i)-'0');
+        if((imm.endsWith("B") && imm.length() > 1) || (imm.startsWith("0B") && imm.length() > 2)){
+            if(imm.endsWith("B")) {
+                int res = 0;
+                int power = 0;
+                for (int i = imm.length() - 2; i >= 0; i--, power++) {
+                    if (!(imm.charAt(i) == '0' || imm.charAt(i) == '1')) return null;
+                    res += (int) Math.pow(2, power) * (imm.charAt(i) - '0');
+                }
+                return res;
             }
-            return res;
+            if(imm.startsWith("0B")) {
+                int res = 0;
+                int power = 0;
+                for (int i = imm.length() - 1; i >= 2; i--, power++) {
+                    if (!(imm.charAt(i) == '0' || imm.charAt(i) == '1')) return null;
+                    res += (int) Math.pow(2, power) * (imm.charAt(i) - '0');
+                }
+                return res;
+            }
         }
         //char
         if(imm.length() == 3 && imm.charAt(0) == '\'' && imm.charAt(2) == '\''){

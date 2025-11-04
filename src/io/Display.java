@@ -6,7 +6,6 @@ import javax.swing.*;
 import java.awt.*;
 
 public class Display extends JPanel {
-    public static final float BYTES_PER_PIXEL = 0.25f;
 
     private final Memory memory;
     private final int screenWidth, screenHeight, pixelSize;
@@ -50,6 +49,18 @@ public class Display extends JPanel {
                 g.fillRect(i*pixelSize, j*pixelSize, pixelSize, pixelSize);
             }
         }
+    }
+    public void setPixel(int x, int y, byte color){
+        int localAddress = y * screenWidth + x;
+        int byteIdx = localAddress /4;
+        int pixelInByte = localAddress % 4;
+        int bitOffset = (3-pixelInByte) * 2;
+        byte value = memory.get(byteIdx+Memory.VIDEO_MEMORY_START);
+        byte mask = (byte) 0b11111100;
+        mask <<= bitOffset;
+        value &= mask;
+        color <<= bitOffset;
+        memory.set(Memory.VIDEO_MEMORY_START+byteIdx, (byte) (value | color));
     }
     public void setSize(int width, int height){
         Dimension d = new Dimension(width, height);

@@ -5,11 +5,14 @@ import io.Display;
 import static cpu.Memory.*;
 
 public class Intel8080 {
+    public static final byte PORT_KEY_DATA = 0x00;
+    public static final byte PORT_KEY_STATUS = 0x01;
+
     private byte A=0, B=0, C=0, D=0, E=0, H=0, L=0;
     //sp in rom
     private final Memory memory = new Memory();
     private Display display;
-    private int pc;
+    private int pc=0;
 
     //S=sign flag
     //Z=zero flag
@@ -23,7 +26,7 @@ public class Intel8080 {
     private boolean HLT = false;
     private boolean interruptPending = false;
     private int interruptVector = 0;           // which interrupt to jump to
-    private byte[] outputPorts = new byte[256];
+    private byte[] ioports = new byte[256];
 
     public void run(){
         pc = 0;
@@ -42,11 +45,11 @@ public class Intel8080 {
             byte instruction = memory.get(pc++);
             execute(instruction);
             display.refresh();
-//            System.out.printf("A=%d,B=%d,C=%d,D=%d,E=%d,H=%d,L=%d\n", A & 0xFF, B & 0xFF, C & 0xFF, D & 0xFF, E & 0xFF, H & 0xFF, L & 0xFF);
+            System.out.printf("A=%d,B=%d,C=%d,D=%d,E=%d,H=%d,L=%d\n", A & 0xFF, B & 0xFF, C & 0xFF, D & 0xFF, E & 0xFF, H & 0xFF, L & 0xFF);
         }
     }
-    public byte[] getOutputPorts(){
-        return outputPorts;
+    public byte[] getIOPorts(){
+        return ioports;
     }
     public void loadProgram(byte[] program){
         memory.loadRom(program);
@@ -127,7 +130,7 @@ public class Intel8080 {
             case 0x07 -> {
                 //'rotate' A 1 left
                 byte bit7 = (byte) ((A & 0x80) >> 7);
-                A <<= 1;
+                A = (byte) (A << 1);
                 A |= bit7;
                 CY = bit7 != 0;
                 System.out.println("RLC");
@@ -179,7 +182,7 @@ public class Intel8080 {
             case 0x0F -> {
                 //'rotate' A 1 right
                 byte bit0 = (byte) (A & 0x01);
-                A = (byte) ((A & 0xFF) >>> 1);
+                A = (byte) ((A & 0xFF) >> 1);
                 A |= (byte) (bit0 << 7);
                 CY = bit0 != 0;
                 System.out.println("RRC");
@@ -534,7 +537,7 @@ public class Intel8080 {
             case 0x46->{
                 //move value at address HL into B
                 short address = (short) ((H << 8) | L);
-                B = memory.get(address);
+                B = memory.get(address & 0xFFFF);
                 System.out.println("MOV B, M");
             }
             case 0x47->{
@@ -568,7 +571,7 @@ public class Intel8080 {
             case 0x4E->{
                 //move value at address HL into C
                 short address = (short) ((H << 8) | L);
-                C = memory.get(address);
+                C = memory.get(address & 0xFFFF);
                 System.out.println("MOV C, M");
             }
             case 0x4F->{
@@ -602,7 +605,7 @@ public class Intel8080 {
             case 0x56->{
                 //move value at address HL into D
                 short address = (short) ((H << 8) | L);
-                D = memory.get(address);
+                D = memory.get(address & 0xFFFF);
                 System.out.println("MOV D, M");
             }
             case 0x57->{
@@ -636,7 +639,7 @@ public class Intel8080 {
             case 0x5E->{
                 //move value at address HL into E
                 short address = (short) ((H << 8) | L);
-                E = memory.get(address);
+                E = memory.get(address & 0xFFFF);
                 System.out.println("MOV E, M");
             }
             case 0x5F->{
@@ -670,7 +673,7 @@ public class Intel8080 {
             case 0x66->{
                 //move value at address HL into H
                 short address = (short) ((H << 8) | L);
-                H = memory.get(address);
+                H = memory.get(address & 0xFFFF);
                 System.out.println("MOV H, M");
             }
             case 0x67->{
@@ -705,7 +708,7 @@ public class Intel8080 {
             case 0x6E->{
                 //move value at address HL into L
                 short address = (short) ((H << 8) | L);
-                L = memory.get(address);
+                L = memory.get(address & 0xFFFF);
                 System.out.println("MOV L, M");
             }
             case 0x6F->{
@@ -715,37 +718,37 @@ public class Intel8080 {
             case 0x70->{
                 //move value in B to address in HL
                 short address = (short) ((H << 8) | L);
-                memory.set(address, B);
+                memory.set(address & 0xFFFF, B);
                 System.out.println("MOV M, B");
             }
             case 0x71->{
                 //move value in C to address in HL
                 short address = (short) ((H << 8) | L);
-                memory.set(address, C);
+                memory.set(address & 0xFFFF, C);
                 System.out.println("MOV M, C");
             }
             case 0x72->{
                 //move value in D to address in HL
                 short address = (short) ((H << 8) | L);
-                memory.set(address, D);
+                memory.set(address & 0xFFFF, D);
                 System.out.println("MOV M, D");
             }
             case 0x73->{
                 //move value in E to address in HL
                 short address = (short) ((H << 8) | L);
-                memory.set(address, E);
+                memory.set(address & 0xFFFF, E);
                 System.out.println("MOV M, E");
             }
             case 0x74->{
                 //move value in H to address in HL
                 short address = (short) ((H << 8) | L);
-                memory.set(address, H);
+                memory.set(address & 0xFFFF, H);
                 System.out.println("MOV M, H");
             }
             case 0x75->{
                 //move value in L to address in HL
                 short address = (short) ((H << 8) | L);
-                memory.set(address, L);
+                memory.set(address & 0xFFFF, L);
                 System.out.println("MOV M, L");
             }
             case 0x76->{
@@ -756,7 +759,7 @@ public class Intel8080 {
             case 0x77->{
                 //move value in A to address in HL
                 short address = (short) ((H << 8) | L);
-                memory.set(address, A);
+                memory.set(address & 0xFFFF, A);
                 System.out.println("MOV M, A");
             }
             case 0x78->{
@@ -786,7 +789,7 @@ public class Intel8080 {
             case 0x7E->{
                 //move value at address HL into A
                 short address = (short) ((H << 8) | L);
-                A = memory.get(address);
+                A = memory.get(address & 0xFFFF);
                 System.out.println("MOV A, M");
             }
             case 0x7F->{
@@ -1253,7 +1256,7 @@ public class Intel8080 {
                 byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
                 if(!Z){
-                    pc = address;
+                    pc = address & 0xFFFF;
                 }
                 System.out.printf("JNZ %s\n", Integer.toHexString(address));
             }
@@ -1262,7 +1265,7 @@ public class Intel8080 {
                 byte low = memory.get(pc++);
                 byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
-                pc = address;
+                pc = address & 0xFFFF;
                 System.out.printf("JMP %s\n", Integer.toHexString(address));
             }
             case (byte) 0xC4->{
@@ -1270,7 +1273,7 @@ public class Intel8080 {
                 byte low = memory.get(pc++);
                 byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
-                pc = address;
+                pc = address & 0xFFFF;
                 System.out.printf("CNZ %s\n", Integer.toHexString(address));
             }
             case (byte) 0xC5->{
@@ -1299,7 +1302,7 @@ public class Intel8080 {
                 if(Z){
                     byte low = memory.pop();
                     byte high = memory.pop();
-                    pc = ((high & 0xFF) << 8) | (low & 0xFF);
+                    pc = ((high << 8) & 0xFF) | (low & 0xFF);
                 }
                 System.out.println("RZ");
             }
@@ -1316,7 +1319,7 @@ public class Intel8080 {
                 byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
                 if(Z){
-                    pc = address;
+                    pc = address & 0xFFFF;
                 }
                 System.out.printf("JZ %s\n", Integer.toHexString(address));
             }
@@ -1331,7 +1334,7 @@ public class Intel8080 {
                     byte pchigh = (byte)(pc & 0x00FF);
                     memory.push(pchigh);
                     memory.push(pclow);
-                    pc = address;
+                    pc = address & 0xFFFF;
                 }
                 System.out.printf("CZ %s\n", Integer.toHexString(address));
             }
@@ -1339,13 +1342,13 @@ public class Intel8080 {
                 //calls to imm16 address
                 byte low = memory.get(pc++);
                 byte high = memory.get(pc++);
-                short address = (short) ((high << 8) | low);
+                short address = (short) (((high & 0xFF) << 8) | (low & 0xFF));
                 byte pclow = (byte)((pc >> 8) & 0xFF);
                 byte pchigh = (byte)(pc & 0xFF);
                 memory.push(pclow);
                 memory.push(pchigh);
                 pc = address;
-                System.out.printf("CALL %04X\n", address);
+                System.out.printf("CALL %04X\n", address & 0xFFFF);
             }
             case (byte) 0xCE->{
                 // add to A with carry immediate
@@ -1385,14 +1388,14 @@ public class Intel8080 {
                 byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
                 if(!CY){
-                    pc = address;
+                    pc = address & 0xFFFF;
                 }
                 System.out.printf("JNC %s\n", Integer.toHexString(address));
             }
             case (byte) 0xD3->{
                 //send A to output port imm8 in next byte
                 byte imm8 = memory.get(pc++);
-                outputPorts[imm8 & 0xFF] = A;
+                ioports[imm8 & 0xFF] = A;
                 System.out.printf("OUT %d\n", imm8);
             }
             case (byte) 0xD4->{
@@ -1405,7 +1408,7 @@ public class Intel8080 {
                     byte pchigh = (byte)(pc & 0x00FF);
                     memory.push(pchigh);
                     memory.push(pclow);
-                    pc = address;
+                    pc = address & 0xFFFF;
                 }
                 System.out.printf("CNC %s\n", Integer.toHexString(address));
             }
@@ -1448,14 +1451,16 @@ public class Intel8080 {
                 byte high = memory.get(pc++);
                 short address = (short) ((high << 8) | low);
                 if(CY){
-                    pc = address;
+                    pc = address & 0xFFFF;
                 }
                 System.out.printf("JC %s\n", Integer.toHexString(address));
             }
             case (byte) 0xDB->{
                 //send imm8 outputPort in next byte to A
                 byte imm8 = memory.get(pc++);
-                A = outputPorts[imm8 & 0xFF];
+                A = ioports[imm8 & 0xFF];
+                if((imm8 & 0xFF) == PORT_KEY_DATA)
+                    ioports[PORT_KEY_STATUS] = 0;
                 System.out.printf("IN, %d\n", imm8);
             }
             case (byte) 0xDC->{
@@ -1468,7 +1473,7 @@ public class Intel8080 {
                     byte pchigh = (byte)(pc & 0x00FF);
                     memory.push(pchigh);
                     memory.push(pclow);
-                    pc = address;
+                    pc = address & 0xFFFF;
                 }
                 System.out.printf("CC %s\n", Integer.toHexString(address));
             }
@@ -1515,7 +1520,7 @@ public class Intel8080 {
                     byte pchigh = (byte)(pc & 0x00FF);
                     memory.push(pchigh);
                     memory.push(pclow);
-                    pc = address;
+                    pc = address & 0xFFFF;
                 }
                 System.out.printf("JPO %s\n", Integer.toHexString(address));
             }
@@ -1539,7 +1544,7 @@ public class Intel8080 {
                     byte pchigh = (byte)(pc & 0x00FF);
                     memory.push(pchigh);
                     memory.push(pclow);
-                    pc = address;
+                    pc = address & 0xFFFF;
                 }
                 System.out.printf("CPO %s\n", Integer.toHexString(address));
             }
@@ -1555,7 +1560,7 @@ public class Intel8080 {
                 byte oldA = A;
                 A &= imm8;
                 setFlags("Z,S,P,CY,AC", A, oldA);
-                System.out.printf("ANI %d", imm8);
+                System.out.printf("ANI %d\n", imm8);
             }
             case (byte) 0xE7->{
                 //jumps to address 0x20
@@ -1590,7 +1595,7 @@ public class Intel8080 {
                     byte pchigh = (byte)(pc & 0x00FF);
                     memory.push(pchigh);
                     memory.push(pclow);
-                    pc = address;
+                    pc = address & 0xFFFF;
                 }
                 System.out.printf("JPE %s\n", Integer.toHexString(address));
             }
@@ -1613,7 +1618,7 @@ public class Intel8080 {
                     byte pchigh = (byte)(pc & 0x00FF);
                     memory.push(pchigh);
                     memory.push(pclow);
-                    pc = address;
+                    pc = address & 0xFFFF;
                 }
                 System.out.printf("CPE %s\n", Integer.toHexString(address));
             }
@@ -1666,7 +1671,7 @@ public class Intel8080 {
                     byte pchigh = (byte)(pc & 0x00FF);
                     memory.push(pchigh);
                     memory.push(pclow);
-                    pc = address;
+                    pc = address & 0xFFFF;
                 }
                 System.out.printf("JP %s\n", Integer.toHexString(address));
             }
@@ -1685,16 +1690,15 @@ public class Intel8080 {
                     byte pchigh = (byte)(pc & 0x00FF);
                     memory.push(pchigh);
                     memory.push(pclow);
-                    pc = address;
+                    pc = address & 0xFFFF;
                 }
                 System.out.printf("CP %s\n", Integer.toHexString(address));
             }
             case (byte) 0xF5->{
                 //flags to val at sp-2, A to val at sp-1, sp-=2
                 byte flags = (byte) (((S?1:0) << 7) | ((Z?1:0) << 6) | ((AC?1:0) << 4) | ((P?1:0) << 2) | 0x02 | ((CY?1:0)));
-                int sp = memory.getSp();
-                memory.set(sp-2, flags);
-                memory.set(sp-1, A);
+                memory.push(A);
+                memory.push(flags);
                 System.out.println("PUSH PSW");
             }
             case (byte) 0xF6->{
@@ -1703,7 +1707,7 @@ public class Intel8080 {
                 byte oldA = A;
                 A |= imm8;
                 setFlags("Z,S,P,CY,AC", A, oldA);
-                System.out.printf("ORI %d", imm8);
+                System.out.printf("ORI %d\n", imm8);
             }
             case (byte) 0xF7->{
                 //jumps to address 0x30
@@ -1739,7 +1743,7 @@ public class Intel8080 {
                     byte pchigh = (byte)(pc & 0x00FF);
                     memory.push(pchigh);
                     memory.push(pclow);
-                    pc = address;
+                    pc = address & 0xFFFF;
                 }
                 System.out.printf("JM %s\n", Integer.toHexString(address));
             }
@@ -1758,7 +1762,7 @@ public class Intel8080 {
                     byte pchigh = (byte)(pc & 0x00FF);
                     memory.push(pchigh);
                     memory.push(pclow);
-                    pc = address;
+                    pc = address & 0xFFFF;
                 }
                 System.out.printf("CM %s\n", Integer.toHexString(address));
             }
