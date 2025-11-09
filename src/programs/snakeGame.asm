@@ -10,7 +10,6 @@ screenWidth: db 16
 len: db 3 ;whatever default val
 dir: db 3 ;0=up, 1=right, 2=down, 3=left
 randCounter: db 0
-score: db 0
 foodCoord: db 0b00100010
 
 org 0x0
@@ -38,6 +37,11 @@ gameLoop:
     call showFood
     call showSnake
 
+    mvi b, 0
+    mvi c, 0
+    mvi d, 0b11
+    call setPixel
+
     jmp gameLoop
     hlt
 
@@ -53,6 +57,7 @@ handleFood:
 
 moveFood:
     lxi h, randCounter
+    inr m
     mov b, m
     call checkFoodBounds
     cpi 1
@@ -76,11 +81,28 @@ checkFoodBounds:
     cpi 0xf
     jz badFood
     call compact
-    mvi a, 0
+
+    lxi h, len
+    mov d, m
+    lxi h, snake
+    call _checkFoodBoundsLoop
+
     ret
+
+_checkFoodBoundsLoop:
+    mov a, m
+    cmp b
+    jz badFood
+    inx h
+    dcr d
+    jz goodFood
+    jmp _checkFoodBoundsLoop
 
 badFood:
     mvi a, 1
+    ret
+goodFood:
+    mvi a, 0
     ret
 
 showFood:
@@ -275,6 +297,7 @@ initSnake:
 addSnakeHead:
     call checkSnakeBounds
     call checkSnakeEat
+    call checkSnakeEatItselfBounds
     lxi h, len
     inr m
     mov d, m
@@ -291,6 +314,22 @@ _addSnakeHeadLoop:
     rz
     jmp _addSnakeHeadLoop
 
+checkSnakeEatItselfBounds:
+    lxi h, len
+    mov c, m
+    lxi h, snake
+    call _checkSnakeEatItselfBoundsLoop
+    ret
+
+_checkSnakeEatItselfBoundsLoop:
+    mov a, m
+    cmp b
+    cz gameOver
+    inx h
+    dcr c
+    rz
+    jmp _checkSnakeEatItselfBoundsLoop
+
 ;params: B(x<<4|y)
 ;returns
 checkSnakeEat:
@@ -302,8 +341,6 @@ checkSnakeEat:
 
 snakeEat:
     lxi h, len
-    inr m
-    lxi h, score
     inr m
     ret
 
@@ -429,263 +466,53 @@ uncompact:
 
 
 gameOver:
-    mvi h, score
+    lxi h, len
     mov a, m
     out 0x3
     hlt
 
 initBoard:
-    ; Top row (y = 0)
-    mvi d, 0b11
-    mvi c, 0
     mvi b, 0
-    call setPixel
-    mvi b, 1
     mvi c, 0
     mvi d, 0b11
-    call setPixel
-    mvi b, 2
+    mvi e, 0x10
+    call _initBoardLoopX
+    mvi b, 0
+    mvi c, 0xf
+    mvi d, 0b11
+    mvi e, 0x10
+    call _initBoardLoopX
+    mvi b, 0
     mvi c, 0
     mvi d, 0b11
-    call setPixel
-    mvi b, 3
+    mvi e, 0x10
+    call _initBoardLoopY
+    mvi b, 0xf
     mvi c, 0
     mvi d, 0b11
-    call setPixel
-    mvi b, 4
-    mvi c, 0
-    mvi d, 0b11
-    call setPixel
-    mvi b, 5
-    mvi c, 0
-    mvi d, 0b11
-    call setPixel
-    mvi b, 6
-    mvi c, 0
-    mvi d, 0b11
-    call setPixel
-    mvi b, 7
-    mvi c, 0
-    mvi d, 0b11
-    call setPixel
-    mvi b, 8
-    mvi c, 0
-    mvi d, 0b11
-    call setPixel
-    mvi b, 9
-    mvi c, 0
-    mvi d, 0b11
-    call setPixel
-    mvi b, 10
-    mvi c, 0
-    mvi d, 0b11
-    call setPixel
-    mvi b, 11
-    mvi c, 0
-    mvi d, 0b11
-    call setPixel
-    mvi b, 12
-    mvi c, 0
-    mvi d, 0b11
-    call setPixel
-    mvi b, 13
-    mvi c, 0
-    mvi d, 0b11
-    call setPixel
-    mvi b, 14
-    mvi c, 0
-    mvi d, 0b11
-    call setPixel
-    mvi b, 15
-    mvi c, 0
-    mvi d, 0b11
-    call setPixel
-
-    ; Bottom row (y = 15)
-    mvi c, 15
-    mvi b, 0
-    mvi d, 0b11
-    call setPixel
-    mvi b, 1
-    mvi c, 15
-    mvi d, 0b11
-    call setPixel
-    mvi b, 2
-    mvi c, 15
-    mvi d, 0b11
-    call setPixel
-    mvi b, 3
-    mvi c, 15
-    mvi d, 0b11
-    call setPixel
-    mvi b, 4
-    mvi c, 15
-    mvi d, 0b11
-    call setPixel
-    mvi b, 5
-    mvi c, 15
-    mvi d, 0b11
-    call setPixel
-    mvi b, 6
-    mvi c, 15
-    mvi d, 0b11
-    call setPixel
-    mvi b, 7
-    mvi c, 15
-    mvi d, 0b11
-    call setPixel
-    mvi b, 8
-    mvi c, 15
-    mvi d, 0b11
-    call setPixel
-    mvi b, 9
-    mvi c, 15
-    mvi d, 0b11
-    call setPixel
-    mvi b, 10
-    mvi c, 15
-    mvi d, 0b11
-    call setPixel
-    mvi b, 11
-    mvi c, 15
-    mvi d, 0b11
-    call setPixel
-    mvi b, 12
-    mvi c, 15
-    mvi d, 0b11
-    call setPixel
-    mvi b, 13
-    mvi c, 15
-    mvi d, 0b11
-    call setPixel
-    mvi b, 14
-    mvi c, 15
-    mvi d, 0b11
-    call setPixel
-    mvi b, 15
-    mvi c, 15
-    mvi d, 0b11
-    call setPixel
-
-    ; Left column (x = 0)
-    mvi b, 0
-    mvi c, 1
-    mvi d, 0b11
-    call setPixel
-    mvi b, 0
-    mvi c, 2
-    mvi d, 0b11
-    call setPixel
-    mvi b, 0
-    mvi c, 3
-    mvi d, 0b11
-    call setPixel
-    mvi b, 0
-    mvi c, 4
-    mvi d, 0b11
-    call setPixel
-    mvi b, 0
-    mvi c, 5
-    mvi d, 0b11
-    call setPixel
-    mvi b, 0
-    mvi c, 6
-    mvi d, 0b11
-    call setPixel
-    mvi b, 0
-    mvi c, 7
-    mvi d, 0b11
-    call setPixel
-    mvi b, 0
-    mvi c, 8
-    mvi d, 0b11
-    call setPixel
-    mvi b, 0
-    mvi c, 9
-    mvi d, 0b11
-    call setPixel
-    mvi b, 0
-    mvi c, 10
-    mvi d, 0b11
-    call setPixel
-    mvi b, 0
-    mvi c, 11
-    mvi d, 0b11
-    call setPixel
-    mvi b, 0
-    mvi c, 12
-    mvi d, 0b11
-    call setPixel
-    mvi b, 0
-    mvi c, 13
-    mvi d, 0b11
-    call setPixel
-    mvi b, 0
-    mvi c, 14
-    mvi d, 0b11
-    call setPixel
-
-    ; Right column (x = 15)
-    mvi b, 15
-    mvi c, 1
-    mvi d, 0b11
-    call setPixel
-    mvi b, 15
-    mvi c, 2
-    mvi d, 0b11
-    call setPixel
-    mvi b, 15
-    mvi c, 3
-    mvi d, 0b11
-    call setPixel
-    mvi b, 15
-    mvi c, 4
-    mvi d, 0b11
-    call setPixel
-    mvi b, 15
-    mvi c, 5
-    mvi d, 0b11
-    call setPixel
-    mvi b, 15
-    mvi c, 6
-    mvi d, 0b11
-    call setPixel
-    mvi b, 15
-    mvi c, 7
-    mvi d, 0b11
-    call setPixel
-    mvi b, 15
-    mvi c, 8
-    mvi d, 0b11
-    call setPixel
-    mvi b, 15
-    mvi c, 9
-    mvi d, 0b11
-    call setPixel
-    mvi b, 15
-    mvi c, 10
-    mvi d, 0b11
-    call setPixel
-    mvi b, 15
-    mvi c, 11
-    mvi d, 0b11
-    call setPixel
-    mvi b, 15
-    mvi c, 12
-    mvi d, 0b11
-    call setPixel
-    mvi b, 15
-    mvi c, 13
-    mvi d, 0b11
-    call setPixel
-    mvi b, 15
-    mvi c, 14
-    mvi d, 0b11
-    call setPixel
+    mvi e, 0xf
+    call _initBoardLoopY
 
     ret
 
+_initBoardLoopX:
+    push b
+    push d
+    call setPixel
+    pop d
+    pop b
+    inr b
+    dcr e
+    rz
+    jmp _initBoardLoopX
 
-
-
-
+_initBoardLoopY:
+    push b
+    push d
+    call setPixel
+    pop d
+    pop b
+    inr c
+    dcr e
+    rz
+    jmp _initBoardLoopY

@@ -61,6 +61,7 @@ public class Intel8080 {
                 deltaGU--;
                 gameUpdates++;
                 ioports[PORT_GAME_UPDATE] = 1;
+                console.flush();
             }
             if(deltaI >= 1) {
                 deltaI--;
@@ -861,7 +862,7 @@ public class Intel8080 {
             case (byte) 0x81 ->{
                 //add C to A
                 byte oldA = A;
-                A += (byte) (C & 0xFF);
+                A += C;
                 setFlags("Z,S,P,CY,AC", A, oldA);
                 console.println(0,"ADD C");
             }
@@ -1454,7 +1455,6 @@ public class Intel8080 {
                 ioports[imm8 & 0xFF] = A;
                 console.printf(0,"OUT %d\n", imm8);
                 console.printf(4,"OUT %d: %d\n", imm8, A);
-                System.out.println(Arrays.toString(console.getBuffers().get(4).toArray()));
             }
             case (byte) 0xD4->{
                 //calls to imm16 address if ncy

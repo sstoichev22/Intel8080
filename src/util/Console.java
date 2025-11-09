@@ -47,7 +47,6 @@ public class Console {
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.setVisible(true);
 
-        new Timer(50, e -> flush()).start();
     }
     public void print(int stream, String message) {
         buffers.get(stream).add(message);
@@ -67,7 +66,7 @@ public class Console {
             } catch (Exception ignored) {}
         }
     }
-    private void flush() {
+    public void flush() {
         for(int i = 0 ; i < streams.size(); i++) {
             if (buffers.get(i).isEmpty()) return;
 
