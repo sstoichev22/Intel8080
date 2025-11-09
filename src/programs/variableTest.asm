@@ -4,21 +4,21 @@ arr: db 1, 2, 3, 4, 5 ; = 1+2+3+4+5=15
 n:   db 5
 
 org 0x0
-LDA n        ; A = [n]
-MOV B, A     ; B = number of elements
+LDA n
+MOV B, A
 
-LXI H, arr   ; HL points to start of array
-MVI C, 0x0   ; accumulator for sum
+LXI H, arr
+MVI C, 0x0
 
 
 loop:
-    MOV A, M ; A = [HL]
-    ADD C    ; A = A + C
+    MOV A, M
+    ADD C
     MOV C, A
-    INX H    ; next element
-    DCR B        ; return if B == 0
+    INX H
+    DCR B
     JNZ loop
 
-MOV A, C     ; output sum
+MOV A, C
 OUT 0x0
 HLT

@@ -8,6 +8,7 @@ public class InstructionInformationList{
     private final HashMap<Integer, String> otom;
     private final HashMap<Integer, Integer> otos;
 
+    @SafeVarargs
     public <T> InstructionInformationList(T...args){
         mtoo = new HashMap<>();
         otom = new HashMap<>();
@@ -28,13 +29,13 @@ public class InstructionInformationList{
 //        otos.put(opcode, size);
 //    }
     public int geto(String mnemonic){
-        return mtoo.getOrDefault(mnemonic, -1);
+        return mtoo.getOrDefault(mnemonic.toUpperCase(), -1);
     }
     public String getm(int opcode){
         return otom.getOrDefault(opcode, "");
     }
     public int gets(String mnemonic){
-        int opcode = geto(mnemonic);
+        int opcode = geto(mnemonic.toUpperCase());
         return otos.getOrDefault(opcode, -1);
     }
     public int gets(int opcode){

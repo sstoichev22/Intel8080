@@ -29,13 +29,13 @@ public class Memory {
     }
     public void push(byte val){
         sp--;
-        int address = sp;
+        int address = sp & 0xFFFF;
         if(address >= RAM_START && address <= RAM_END)
             memory[address & 0xFFFF] = val;
         else throw new RuntimeException(String.format("Ram out of bounds: %d for range: [%d,%d]\n", address, RAM_START, RAM_END));
     }
     public byte pop(){
-        int address = sp;
+        int address = sp & 0xFFFF;
         sp++;
         if(address >= RAM_START && address <= RAM_END)
             return memory[address & 0xFFFF];

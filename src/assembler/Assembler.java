@@ -1,12 +1,14 @@
 package assembler;
 
 import cpu.Memory;
+import util.Console;
 import util.InstructionInformationList;
 import util.LabelList;
 
 import java.util.*;
 
 public class Assembler {
+    private static Console console;
     public static byte[] assemble(String[] lines) {
         //all the opcodes
         InstructionInformationList iil = OpcodeTable.OPCODES;
@@ -26,7 +28,6 @@ public class Assembler {
             //remove comments
             lines[i] = removeComments(lines[i]);
             if(lines[i].trim().isEmpty()) continue;
-            lines[i] = lines[i].toUpperCase();
             int idx = lines[i].indexOf(':');
             if(idx != -1)
                 labelList.add(lines[i].substring(0, idx));
@@ -40,36 +41,43 @@ public class Assembler {
 
             //add <label, pc> to 'labels' and remove from line
             //this could also be a variable
-            String line = lines[i].toUpperCase();
+            String line = lines[i];
+            String lineU = lines[i].toUpperCase();
             if(line.contains(":")){
                 int idx = line.indexOf(':');
                 //handle variables
-                if(line.contains("DB ") || line.contains("DW ") || line.contains("DS ")) {
+                if(lineU.contains("DB ") || lineU.contains("DW ") || lineU.contains("DS ")) {
                     String[] tokens = line.split(",");
                     String[] firstElement = tokens[0].split("\\s+");
                     tokens[0] = firstElement[firstElement.length-1];
-                    if (line.contains("DB ")) {
+                    if (lineU.contains("DB ")) {
                         labelData.put(line.substring(0, idx), pc, 1);
                         for(int t = 0; t < tokens.length; t++) {
                             Integer imm8 = decodeImmediate(tokens[t]);
+                            byte[] immS = decodeImmediateString(tokens[t]);
                             if (imm8 != null)
                                 program[pc++] = (byte) (imm8 & 0xFF);
+                            else if(immS.length != 0){
+                                System.arraycopy(immS, 0, program, pc, immS.length);
+                                pc += immS.length;
+                            }
                             else throw new RuntimeException("No value for variable: " + line.substring(0, idx));
+                            console.println(3, tokens[t]);
                         }
                     }
-                    if (line.contains("DW ")) {
+                    if (lineU.contains("DW ")) {
                         for(int t = 0; t < tokens.length; t++) {
                             Integer imm16 = decodeImmediate(tokens[t]);
                             if (imm16 != null) {
                                 byte low = (byte) (imm16 & 0xFF);
-                                byte high = (byte) ((imm16 >> 8) & 0xFF);
+                                byte high = (byte) (((imm16 & 0xFF00) >> 8) & 0xFF);
                                 labelData.put(line.substring(0, idx), pc, 2);
                                 program[pc++] = low;
                                 program[pc++] = high;
                             } else throw new RuntimeException("No value for variable: " + line.substring(0, idx));
                         }
                     }
-                    if (line.contains("DS ")) {
+                    if (lineU.contains("DS ")) {
                         int n = Integer.parseInt(tokens[tokens.length-1]);
                         labelData.put(line.substring(0, idx), pc, n);
                         pc += n;
@@ -84,7 +92,7 @@ public class Assembler {
             if(lines[i].isEmpty()) continue;
 
             //handle org
-            if(lines[i].startsWith("ORG")){
+            if(lines[i].toUpperCase().startsWith("ORG")){
                 Integer address = decodeImmediate(lines[i].split("\\s+")[1]);
                 if(address != null){
                     pc = address & 0xFFFF;
@@ -119,6 +127,8 @@ public class Assembler {
             }
             pc += size;
         }
+
+        console.println(3, labelData.toString());
         //now we know where labels are
         //in pass 2 we replace labels with imm16
         //all lines are in form '(opcode) imm8/16/label/var'
@@ -129,7 +139,7 @@ public class Assembler {
             String instruction = lines[i];
             if(instruction.trim().isEmpty()) continue;
 
-            if(instruction.startsWith("ORG")){
+            if(instruction.toUpperCase().startsWith("ORG")){
                 Integer address = decodeImmediate(instruction.split("\\s+")[1]);
                 if(address != null){
                     pc = address & 0xFFFF;
@@ -188,60 +198,60 @@ public class Assembler {
     private static String removeComments(String s){
         int commentIdx = s.indexOf(';');
         if(commentIdx == -1) return s.trim();
-        return s.substring(0, commentIdx).trim().toUpperCase();
+        return s.substring(0, commentIdx).trim();
     }
 
     private static Integer decodeImmediate(String imm){
-        imm = imm.toUpperCase().trim();
+        imm = imm.trim();
+        String immU = imm.toUpperCase();
         if(imm.isEmpty()) return null;
         //hex
-        if(imm.startsWith("0X") || imm.endsWith("H")){
-            if(imm.startsWith("0X")){
+        if(immU.startsWith("0X") || immU.endsWith("H")){
+            if(immU.startsWith("0X")){
                 int res = 0;
                 int power = 0;
                 for(int i = imm.length()-1 ; i >= 2; i--, power++){
-                    if(!Character.isDigit(imm.charAt(i)) && !(imm.charAt(i) >= 'A' && imm.charAt(i) <= 'F')) return null;
-
+                    if(!isCharHex(imm.charAt(i))) return null;
                     res += (int) Math.pow(16, power) * ctoh(imm.charAt(i));
                 }
                 return res;
             }
-            if(imm.endsWith("H") && imm.length() > 1){
+            if(immU.endsWith("H") && immU.length() > 1){
                 int res = 0;
                 int power = 0;
                 for(int i = imm.length()-2 ; i >= 0; i--, power++){
-                    if(!Character.isDigit(imm.charAt(i)) && !(imm.charAt(i) >= 'A' && imm.charAt(i) <= 'F')) return null;
+                    if(!isCharHex(imm.charAt(i))) return null;
                     res += (int) Math.pow(16, power) * ctoh(imm.charAt(i));
                 }
                 return res;
             }
         }
         //octal
-        if((imm.endsWith("O") || imm.endsWith("Q")) && imm.length() > 1){
+        if((immU.endsWith("O") || immU.endsWith("Q")) && imm.length() > 1){
             int res = 0;
             int power = 0;
             for(int i = imm.length()-2 ; i >= 0; i--, power++){
-                if(!(imm.charAt(i) >= '0' && imm.charAt(i) <= '8')) return null;
+                if(!isCharOctal(imm.charAt(i))) return null;
                 res += (int) Math.pow(8, power) * (imm.charAt(i)-'0');
             }
             return res;
         }
         //binary
-        if((imm.endsWith("B") && imm.length() > 1) || (imm.startsWith("0B") && imm.length() > 2)){
-            if(imm.endsWith("B")) {
+        if((immU.endsWith("B") && imm.length() > 1) || (immU.startsWith("0B") && imm.length() > 2)){
+            if(immU.endsWith("B")) {
                 int res = 0;
                 int power = 0;
                 for (int i = imm.length() - 2; i >= 0; i--, power++) {
-                    if (!(imm.charAt(i) == '0' || imm.charAt(i) == '1')) return null;
+                    if (!isCharBinary(imm.charAt(i))) return null;
                     res += (int) Math.pow(2, power) * (imm.charAt(i) - '0');
                 }
                 return res;
             }
-            if(imm.startsWith("0B")) {
+            if(immU.startsWith("0B")) {
                 int res = 0;
                 int power = 0;
                 for (int i = imm.length() - 1; i >= 2; i--, power++) {
-                    if (!(imm.charAt(i) == '0' || imm.charAt(i) == '1')) return null;
+                    if (!isCharBinary(imm.charAt(i))) return null;
                     res += (int) Math.pow(2, power) * (imm.charAt(i) - '0');
                 }
                 return res;
@@ -253,6 +263,17 @@ public class Assembler {
         }
         if(!imm.matches("-?[0-9]+")) return null;
         return Integer.parseInt(imm);
+    }
+
+    public static byte[] decodeImmediateString(String imm){
+        if(imm.charAt(0) == '"' && imm.charAt(imm.length()-1) == '"'){
+            byte[] immS = new byte[imm.length()-2];
+            for(int i = 0 ; i < immS.length; i++){
+                immS[i] = (byte)imm.charAt(i+1);
+            }
+            return immS;
+        }
+        return new byte[0];
     }
     //char to hex
     private static int ctoh(char c){
@@ -269,6 +290,20 @@ public class Assembler {
             case 'F'-> 15;
             default -> c-'0';
         };
+    }
+    private static boolean isCharHex(char c){
+        c = Character.toUpperCase(c);
+        return Character.isDigit(c) || (c >= 'A' && c <= 'F');
+    }
+    private static boolean isCharOctal(char c){
+        return c >= '0' && c <= '8';
+    }
+    private static boolean isCharBinary(char c){
+        return c == '0' || c == '1';
+    }
+
+    public static void attachConsole(Console _console){
+        console = _console;
     }
 
 }

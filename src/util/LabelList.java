@@ -3,6 +3,7 @@ package util;
 import cpu.Memory;
 
 import java.util.HashMap;
+import java.util.Map;
 
 public class LabelList {
     //name to address
@@ -19,27 +20,38 @@ public class LabelList {
     }
 
     public void put(String name, int address, int size){
-        ntoa.put(name.toLowerCase(), address);
-        atos.put(address, size);
+        ntoa.put(name, address & 0xFFFF);
+        atos.put(address & 0xFFFF, size);
 
         for(int i = 0 ; i < size; i++){
-            reservedBytes[address+i] = true;
+            reservedBytes[(address & 0xFFFF)+i] = true;
         }
     }
     public int geta(String name){
-        return ntoa.get(name.toLowerCase());
+        return ntoa.get(name) & 0xFFFF;
     }
     public int gets(String name){
-        int address = ntoa.get(name.toLowerCase());
-        return atos.get(address);
+        int address = ntoa.get(name);
+        return atos.get(address & 0xFFFF);
     }
     public int gets(int address){
         return atos.get(address);
     }
     public boolean contains(String name){
-        return ntoa.containsKey(name.toLowerCase());
+        return ntoa.containsKey(name);
     }
     public boolean contains(int address){
         return reservedBytes[address];
+    }
+
+    @Override
+    public String toString(){
+        StringBuilder sb = new StringBuilder("[");
+        for(Map.Entry<String, Integer> entry: ntoa.entrySet()){
+            sb.append(entry.getKey()).append(":").append(entry.getValue()).append(", ");
+        }
+        sb.setLength(sb.length()-2);
+        sb.append("]");
+        return sb.toString();
     }
 }

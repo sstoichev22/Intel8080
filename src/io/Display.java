@@ -22,7 +22,7 @@ public class Display extends JPanel {
         frame.pack();
         this.requestFocus();
 
-        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         frame.setLocationRelativeTo(null);
         frame.setResizable(false);
         frame.setVisible(true);
@@ -30,6 +30,7 @@ public class Display extends JPanel {
     }
 
     public void paintComponent(Graphics g){
+        super.paintComponent(g);
         for(int i = 0; i < screenWidth; i++){
             for(int j = 0 ; j < screenHeight; j++){
                 int localAddress = j * screenWidth + i;
@@ -40,10 +41,10 @@ public class Display extends JPanel {
 
 
                 Color color = switch(value){
-                    case 0->Color.black;
-                    case 1->Color.green;
-                    case 2->Color.red;
-                    case 3->Color.white;
+                    case 0->new Color(50, 150, 90);
+                    case 1->new Color(70, 130, 250);
+                    case 2->new Color(255, 50, 100);
+                    case 3->new Color(15, 108, 44);
                     default -> throw new RuntimeException("Unexpected Value : ["+value+"]");                };
                 g.setColor(color);
                 g.fillRect(i*pixelSize, j*pixelSize, pixelSize, pixelSize);
@@ -69,6 +70,10 @@ public class Display extends JPanel {
         this.setMaximumSize(d);
     }
     public void refresh(){
-        this.repaint();
+        if (!SwingUtilities.isEventDispatchThread()) {
+            SwingUtilities.invokeLater(this::repaint);
+        } else {
+            repaint();
+        }
     }
 }
