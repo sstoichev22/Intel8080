@@ -24,6 +24,7 @@
 24. the '\0' char shouldnt print a space, it should print nothing, but still appear in the hex
 25. ctrl scroll  should work in console and terminal
 26. console and terminal panel shouldnt be able to go all the way down, let it go until the bottom of "console" tab is touching the bottom bar in windows
-27. 
+27. "Open error: Input length = 1", i tried to open a png, add suppport for all the availbe image file configureations
+28. add a popup, when right clicking whywhere even on no selected text, for copy, paste etc.
 
 
