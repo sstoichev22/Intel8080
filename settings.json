@@ -1,0 +1,80 @@
+{
+  "settingsVersion": 1,
+  "look": {
+    "darkMode": true,
+    "syntaxHighlighting": true,
+    "editorFont": "Consolas",
+    "applicationFont": "Segoe UI"
+  },
+  "fontSizes": {
+    "application": 15,
+    "applicationTitle": 15,
+    "editor": 16,
+    "editorFilePanel": 15,
+    "editorFilePanelTitle": 14,
+    "editorFilePanelPath": 12,
+    "debuggerFilePanel": 15,
+    "debuggerFilePanelTitle": 14,
+    "debuggerFilePanelPath": 12,
+    "displayFilePanel": 15,
+    "displayFilePanelTitle": 14,
+    "displayFilePanelPath": 12,
+    "editorTab": 14,
+    "editorConsole": 15,
+    "displayConsole": 15,
+    "debuggerConsole": 15,
+    "terminal": 15,
+    "debuggerMemory": 15,
+    "debuggerInstructions": 15,
+    "debuggerRegisters": 17,
+    "debuggerFilename": 15,
+    "displayFilename": 15,
+    "editorFiles": {}
+  },
+  "tabs": {
+    "selectedMainTab": 0,
+    "selectedEditorTab": 0,
+    "displayPreset": "16x16 Video 2-bit"
+  },
+  "layout": {
+    "filePanelDivider": 230,
+    "consoleDivider": 600
+  },
+  "window": null,
+  "fileScrollPositions": {},
+  "paths": {
+    "fileProjectDirectory": null,
+    "terminalWorkingDirectory": null,
+    "currentFile": null,
+    "openFiles": ""
+  },
+  "colors": {
+    "applicationBackground": [38, 41, 46],
+    "panelBackground": [46, 49, 55],
+    "inputBackground": [31, 34, 39],
+    "text": [228, 231, 237],
+    "editorBackground": [26, 29, 34],
+    "editorText": [228, 231, 237],
+    "tabSelected": [62, 66, 74],
+    "tabText": [255, 255, 255],
+    "tabTextMuted": [198, 204, 214],
+    "fileSelectionBackground": [68, 73, 82],
+    "fileSelectionText": [248, 249, 252],
+    "splitDivider": [72, 76, 84],
+    "section": [255, 105, 180],
+    "callJump": [245, 105, 112],
+    "stack": [255, 215, 75],
+    "immediate": [72, 195, 225],
+    "escape": [65, 220, 195],
+    "string": [92, 221, 142],
+    "register": [92, 165, 255],
+    "directive": [195, 125, 255],
+    "instruction": [255, 160, 70],
+    "comment": [132, 139, 150],
+    "label": [228, 231, 237],
+    "equate": [175, 220, 120],
+    "lineNumber": [133, 139, 150],
+    "stopButton": [192, 54, 64],
+    "currentInstruction": [52, 72, 100]
+  }
+}

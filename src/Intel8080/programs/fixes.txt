@@ -1,0 +1,29 @@
+1. the input for console must be within it, so for example if i try to type in the console when its not expecting input, or the program is done, it will bring up text at your cursor saying read-only like intellij
+2. the windowed button when its at fullscreen doesnt look right and is just a  diagonal line with a space in the middle
+3. make the ascii escape chars a bit more blue
+4. for autocomplete, in the small window where the autocomplete words are, make the letters for all the options that are shared with the inpputed onmes are bold, so for example: 'm' would autocomplete to mov or mvi, great, but also the 'm' in the mov and mvi should be bolded
+5. the 'x' close on tabs is in a good spot but the highlighted circle when hovering is not centered on the x
+6. autocomplete should include registers, for mov m, a, attempting to hit enter after selects one of the instructions, add registers, if a letter is a register then leave it after enter
+7. make the asmebler error logs better, include line and char in all of them, i just got the error 'could not evaluate expression' what could that mean from no context
+8. if you are at the end of a complete instruction
+9. it seems cpi '\n' doesnt work, investigate
+10. line up tabs so that when you tab its the \t char, so that when you backspace it goes back a full tab, and whn you are at uneven so \t s s s, so tab then 3 spaces, its uneven since tab is 4 so pressing tab agin would remove the 3 spaces and replace with a full tab
+11. remove the pause button from debugger, stop button acts the same way, when running make the same thing with in debugger, make the start button outside rounded rectangle green
+12. find vscode '.c' and '.java' file extension icons and add them
+13. pressing on 3 dots at the top opens the windows path manager AND the built in java one, remove the java one entirely and replace the windows one with the better file explorer where it requests to select a folder, EXACTLY how 'open folder in file explorer workds' 
+14. the workspace option in view is highlighted white remove that
+15. right clicking on a highlighted piece of text should bring up related options liek copy, paste, etc
+16. check for seg faults, video mem, is the only place where you can roam, other than that you cannot do label: ds 1, lxi h, label, inx h, inx h, mov m, a. That access memory outside of the program
+17. when typing either ' or ", automatically add a second one after  the cursor so if ^ was the carent, typing " would lead to "^" and then you can type text in the string/char
+18. when using the scroll wheel on the opened files, make it scroll a small amount, dont make 1 scroll = move frame over 1 file
+19. make ascii escape chars be highlighted a cyan, greener than numbers
+20. when hovering over the x in tabs, highlight a small circle around the x, make the x in tabs a little lower to be at the middle of the text
+21. allow highlight, copy paste actions in the debugger memory, instructions, and registers
+22. switching tabs from editor to debugger keeps running, so for example if i have a program running but its in an infinite loop, i can swithc to debugger and see where im getting stuck,  make them work in parrellel, so starting in the editor and stoping, steping all work in the debugger after
+23. find a cool .exe icon, not the windows one but any other that looks cool
+24. the '\0' char shouldnt print a space, it should print nothing, but still appear in the hex
+25. ctrl scroll  should work in console and terminal
+26. console and terminal panel shouldnt be able to go all the way down, let it go until the bottom of "console" tab is touching the bottom bar in windows
+27. 
+
+

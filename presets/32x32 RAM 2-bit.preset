@@ -1,0 +1,10 @@
+# Vulcan Display Preset
+name=32x32 RAM 2-bit
+address=8000
+width=32
+height=32
+bits=2
+color.0=FF142814
+color.1=FF236E2D
+color.2=FF285ABE
+color.3=FFD22D2D

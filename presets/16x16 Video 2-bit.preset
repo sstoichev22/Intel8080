@@ -1,0 +1,10 @@
+# Vulcan Display Preset
+name=16x16 Video 2-bit
+address=9000
+width=16
+height=16
+bits=2
+color.0=FF142814
+color.1=FF236E2D
+color.2=FF285ABE
+color.3=FFD22D2D

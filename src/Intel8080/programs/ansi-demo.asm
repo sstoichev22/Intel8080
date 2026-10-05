@@ -1,0 +1,27 @@
+; Vulcan ANSI console demo
+; Sends ESC[31m, then the text RED, then ESC[0m.
+MVI A, 0x1B
+OUT 0
+MVI A, 0x5B
+OUT 0
+MVI A, 0x33
+OUT 0
+MVI A, 0x31
+OUT 0
+MVI A, 0x6D
+OUT 0
+MVI A, 0x52
+OUT 0
+MVI A, 0x45
+OUT 0
+MVI A, 0x44
+OUT 0
+MVI A, 0x1B
+OUT 0
+MVI A, 0x5B
+OUT 0
+MVI A, 0x30
+OUT 0
+MVI A, 0x6D
+OUT 0
+STOP
